@@ -162,7 +162,7 @@ mkdir -p $log_path
 
 # Log filename
 today=`date '+%F'`
-log_file="${today}_clone_log.txt"
+log_file="${today}_SUMMA_run_log.txt"
 
 # Make the log
 this_file='1_run_summa.sh'
