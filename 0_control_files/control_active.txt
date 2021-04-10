@@ -6,7 +6,7 @@
 
 
 # Modeling domain settings
-root_path                   | C:\Globus endpoint\summaWorkflow_data       # Root folder where data will be stored.
+root_path                   | /project/gwf/gwf_cmt/wknoben/summaWorkflow_data       # Root folder where data will be stored.
 domain_name                 | BowAtBanff                                  # Used as part of the root folder name for the prepared data.
 
 
@@ -29,12 +29,14 @@ river_network_shp_slope     | slope                                       # Name
 river_network_shp_length    | length                                      # Name of the segment length column. Length must be in units [m].
 river_network_shp_outlet_id | 71028585                                    # ID of the most downstream segment in the river network (river network shapefile).
 
+
 # Shapefile settings - mizuRoute catchment file
 river_basin_shp_path        | default                                     # If 'default', uses 'root_path/domain_[name]/shapefiles/river_basins'. 
 river_basin_shp_name        | bow_distributed.shp                         # Name of the routing subbasins shapefile needed for remapping. Requires extension '.shp'.
 river_basin_shp_rm_hruid    | COMID                                       # Name of the routing basin ID column.
 river_basin_shp_area        | area                                        # Name of the catchment area column. Area must be in units [m^2]
 river_basin_shp_hru_to_seg  | hru_to_seg                                  # Name of the column that shows which river segment each HRU connects to.
+
 
 # Shapefile settings - SUMMA-to-mizuRoute 
 river_basin_needs_remap     | yes                                         # 'no' if routing basins map 1:1 onto model GRUs. 'yes' if river segments span multiple GRUs or if multiple segments are inside a single GRU.
@@ -56,6 +58,8 @@ forcing_time_step_size      | 3600                                        # Size
 forcing_measurement_height  | 3                                           # Reference height for forcing measurements [m].
 forcing_shape_path          | default                                     # If 'default', uses 'root_path/domain_[name]/shapefiles/forcing'.
 forcing_shape_name          | era5_grid.shp                               # Name of the forcing shapefile. Requires extension '.shp'.
+forcing_shape_lat_name      | lat                                         # Name of the latitude field that contains the latitude of ERA5 data points.
+forcing_shape_lon_name      | lon                                         # Name of the longitude field that contains the latitude of ERA5 data points.
 forcing_geo_path            | default                                     # If 'default', uses 'root_path/domain_[name]/forcing/0_geopotential'.
 forcing_raw_path            | default                                     # If 'default', uses 'root_path/domain_[name]/forcing/1_raw_data'.
 forcing_merged_path         | default                                     # If 'default', uses 'root_path/domain_[name]/forcing/2_merged_data'.
