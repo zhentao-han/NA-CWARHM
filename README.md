@@ -22,6 +22,8 @@ Original `git pull upstream develop` replace with `git pull upstream main`.
 
 8. When compiling mizuRoute, the system cannot find libraries/parallelio.
    
+https://mizuroute.readthedocs.io/en/stable/users_guide/Build_model.html
+ 
  `cd CWARHM/CWARHM_data/installs/mizuRoute/`
 
  `mkdir -p libraries/parallelio`
@@ -72,6 +74,11 @@ done
 11. MERIT_Hydro DEM download: 
 https://global-hydrodynamics.github.io/MERIT_Hydro/
 
+12. Enter install/summa/bin
+`./summa.exe -m /home/zhentao/projects/rrg-h294liu/zhentao/CWARHM/CWARHM_data/domain_BowAtBanff/settings/SUMMA/fileManager.txt`
+
+13. Enter install/mizuRoute/route/bin
+`./route_runoff.exe /home/zhentao/projects/rrg-h294liu/zhentao/CWARHM/CWARHM_data/domain_BowAtBanff/settings/mizuRoute/mizuroute.control`
 
 # Community Workflows to Advance Reproducibility in Hydrologic Modeling (CWARHM)
 This is the code repository that accompanies the paper _"Community Workflows to Advance Reproducibility in Hydrologic Modeling: Separating model-agnostic and model-specific configuration steps in applications of large-domain hydrologic models"_ (Knoben et al., 2022).
