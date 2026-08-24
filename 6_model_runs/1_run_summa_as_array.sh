@@ -1,196 +1,236 @@
-# Script to run SUMMA as array job
-# Reads most required info from 'summaWorkflow_public/0_control_files/control_active.txt'
-#
-# Also needs two arguments as input:
-# gru_start and gru_count
-#
-# These are used to supply SUMMA with the -g argument: -g gru_start gru_count
+#!/bin/bash
 
-# --- Command line arguments
-gru_start=$1
-gru_count=$2
-array_id=$3
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=8G
+#SBATCH --time=2-00:00:00
+#SBATCH --partition=cpu2025,cpu2023,cpu2022
+#SBATCH --output=SUMMA_%A_%a.out
+#SBATCH --error=SUMMA_%A_%a.err
 
-# --- Settings
+set -euo pipefail
 
-# - Find the SUMMA install dir 
-# ----------------------------
-setting_line=$(grep -m 1 "^install_path_summa" ../0_control_files/control_active.txt) # -m 1 ensures we only return the top-most result. This is needed because variable names are sometimes used in comments in later lines
 
-# Extract the path
-summa_path=$(echo ${setting_line##*|}) # remove the part that ends at "|"
-summa_path=$(echo ${summa_path%%#*}) # remove the part starting at '#'; does nothing if no '#' is present
+# ============================================================
+# PATHS
+# ============================================================
 
-# Specify the default path if needed
-if [ "$summa_path" = "default" ]; then
-  
- # Get the root path
- root_line=$(grep -m 1 "^root_path" ../0_control_files/control_active.txt)
- root_path=$(echo ${root_line##*|}) 
- root_path=$(echo ${root_path%%#*}) 
- summa_path="${root_path}/installs/summa/bin/"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CWARHM="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CONTROL="${CWARHM}/0_control_files/control_active.txt"
+
+
+# ============================================================
+# CONTROL READER
+# ============================================================
+
+read_control() {
+
+    local key="$1"
+
+    awk -F'|' -v key="$key" '
+        /^[[:space:]]*#/ {next}
+
+        NF >= 2 {
+
+            left=$1
+            gsub(/^[ \t]+|[ \t]+$/, "", left)
+
+            if (left == key) {
+
+                right=$2
+                sub(/#.*/, "", right)
+                gsub(/^[ \t]+|[ \t]+$/, "", right)
+
+                print right
+                exit
+            }
+        }
+    ' "$CONTROL"
+}
+
+
+# ============================================================
+# SETTINGS
+# ============================================================
+
+ROOT_PATH="$(read_control root_path)"
+DOMAIN_NAME="$(read_control domain_name)"
+EXPERIMENT_ID="$(read_control experiment_id)"
+
+SUMMA_PATH="$(read_control install_path_summa)"
+SUMMA_EXE="$(read_control exe_name_summa)"
+
+SETTINGS_PATH="$(read_control settings_summa_path)"
+FILEMANAGER="$(read_control settings_summa_filemanager)"
+
+OUTPUT_PATH="$(read_control experiment_output_summa)"
+LOG_PATH="$(read_control experiment_log_summa)"
+
+DO_BACKUP="$(read_control experiment_backup_settings)"
+
+
+if [ "$SUMMA_PATH" = "default" ]; then
+    SUMMA_PATH="${ROOT_PATH}/installs/summa"
+fi
+
+if [ "$SETTINGS_PATH" = "default" ]; then
+    SETTINGS_PATH="${ROOT_PATH}/domain_${DOMAIN_NAME}/settings/SUMMA"
+fi
+
+if [ "$OUTPUT_PATH" = "default" ]; then
+    OUTPUT_PATH="${ROOT_PATH}/domain_${DOMAIN_NAME}/simulations/${EXPERIMENT_ID}/SUMMA"
+fi
+
+if [ "$LOG_PATH" = "default" ]; then
+    LOG_PATH="${OUTPUT_PATH}/SUMMA_logs"
 fi
 
 
-# - Find the SUMMA executable
-# ---------------------------
-setting_line=$(grep -m 1 "^exe_name_summa" ../0_control_files/control_active.txt) 
-summa_exe=$(echo ${setting_line##*|}) 
-summa_exe=$(echo ${summa_exe%%#*}) 
+SUMMA_EXEC="${SUMMA_PATH}/bin/${SUMMA_EXE}"
+FILEMANAGER_PATH="${SETTINGS_PATH}/${FILEMANAGER}"
 
 
-# - Find where the SUMMA settings are
-# -----------------------------------
-setting_line=$(grep -m 1 "^settings_summa_path" ../0_control_files/control_active.txt) 
-settings_path=$(echo ${setting_line##*|}) 
-settings_path=$(echo ${settings_path%%#*}) 
+# ============================================================
+# ARRAY PARAMETERS
+# ============================================================
 
-# Specify the default path if needed
-if [ "$settings_path" = "default" ]; then
-  
- # Get the root path
- root_line=$(grep -m 1 "^root_path" ../0_control_files/control_active.txt)
- root_path=$(echo ${root_line##*|}) 
- root_path=$(echo ${root_path%%#*}) 
- 
- # Get the domain name
- domain_line=$(grep -m 1 "^domain_name" ../0_control_files/control_active.txt)
- domain_name=$(echo ${domain_line##*|}) 
- domain_name=$(echo ${domain_name%%#*})
- 
- # Make the default path
- settings_path="${root_path}/domain_${domain_name}/settings/SUMMA/"
+if [ -z "${SLURM_ARRAY_TASK_ID:-}" ]; then
+    echo "ERROR: this script must be run as a Slurm array job."
+    exit 1
+fi
+
+GRUS_PER_TASK="${GRUS_PER_TASK:-10}"
+TOTAL_GRUS="${TOTAL_GRUS:?TOTAL_GRUS was not supplied by submitter}"
+
+GRU_START=$((SLURM_ARRAY_TASK_ID * GRUS_PER_TASK + 1))
+GRU_COUNT="$GRUS_PER_TASK"
+
+GRU_END=$((GRU_START + GRU_COUNT - 1))
+
+if [ "$GRU_END" -gt "$TOTAL_GRUS" ]; then
+    GRU_COUNT=$((TOTAL_GRUS - GRU_START + 1))
+fi
+
+if [ "$GRU_COUNT" -le 0 ]; then
+    echo "ERROR: calculated GRU_COUNT <= 0"
+    exit 1
 fi
 
 
-# - Find the filemanager name
-# ---------------------------
-setting_line=$(grep -m 1 "^settings_summa_filemanager" ../0_control_files/control_active.txt) 
-filemanager=$(echo ${setting_line##*|}) 
-filemanager=$(echo ${filemanager%%#*})
+LOG_FILE="${LOG_PATH}/summa_G${GRU_START}_${GRU_COUNT}_${SLURM_ARRAY_TASK_ID}.txt"
 
 
-# - Find where the SUMMA logs need to go
-# --------------------------------------
-setting_line=$(grep -m 1 "^experiment_log_summa" ../0_control_files/control_active.txt) 
-summa_log_path=$(echo ${setting_line##*|}) 
-summa_log_path=$(echo ${summa_log_path%%#*})
-summa_log_name="summa_log_${array_id}.txt"
+# ============================================================
+# ENVIRONMENT
+# ============================================================
 
-# Specify the default path if needed
-if [ "$summa_log_path" = "default" ]; then
- 
- # Get the root path
- root_line=$(grep -m 1 "^root_path" ../0_control_files/control_active.txt)
- root_path=$(echo ${root_line##*|}) 
- root_path=$(echo ${root_path%%#*}) 
- 
- # Get the domain name
- domain_line=$(grep -m 1 "^domain_name" ../0_control_files/control_active.txt)
- domain_name=$(echo ${domain_line##*|}) 
- domain_name=$(echo ${domain_name%%#*})
- 
- # Get the experiment ID
- exp_line=$(grep -m 1 "^experiment_id" ../0_control_files/control_active.txt)
- exp_name=$(echo ${exp_line##*|}) 
- exp_name=$(echo ${exp_name%%#*})
- 
- # Make the default path
- summa_log_path="${root_path}/domain_${domain_name}/simulations/${exp_name}/SUMMA/SUMMA_logs/"
+module load conda/base
+conda activate nwam
+
+export PATH="${CONDA_PREFIX}/bin:${PATH}"
+export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
+
+
+# ============================================================
+# CHECKS
+# ============================================================
+
+if [ ! -x "$SUMMA_EXEC" ]; then
+    echo "ERROR: SUMMA executable not found:"
+    echo "$SUMMA_EXEC"
+    exit 1
+fi
+
+if [ ! -f "$FILEMANAGER_PATH" ]; then
+    echo "ERROR: SUMMA fileManager not found:"
+    echo "$FILEMANAGER_PATH"
+    exit 1
 fi
 
 
-# - Get the SUMMA output path (for code provenance and possibly settings backup)
-# ------------------------------------------------------------------------------
-summa_out_line=$(grep -m 1 "^settings_summa_path" ../0_control_files/control_active.txt)
-summa_out_path=$(echo ${summa_out_line##*|}) 
-summa_out_path=$(echo ${summa_out_path%%#*})
+mkdir -p "$OUTPUT_PATH"
+mkdir -p "$LOG_PATH"
 
-# Specify the default path if needed
-if [ "$summa_out_path" = "default" ]; then
- 
- # Get the root path
- root_line=$(grep -m 1 "^root_path" ../0_control_files/control_active.txt)
- root_path=$(echo ${root_line##*|}) 
- root_path=$(echo ${root_path%%#*}) 
- 
- # Get the domain name
- domain_line=$(grep -m 1 "^domain_name" ../0_control_files/control_active.txt)
- domain_name=$(echo ${domain_line##*|}) 
- domain_name=$(echo ${domain_name%%#*})
- 
- # Get the experiment ID
- exp_line=$(grep -m 1 "^experiment_id" ../0_control_files/control_active.txt)
- exp_name=$(echo ${exp_line##*|}) 
- exp_name=$(echo ${exp_name%%#*})
- 
- # Make the default path
- summa_out_path="${root_path}/domain_${domain_name}/simulations/${exp_name}/SUMMA/"
+
+# ============================================================
+# BACKUP SETTINGS
+# ============================================================
+
+if [ "$DO_BACKUP" = "yes" ] && [ "$SLURM_ARRAY_TASK_ID" = "0" ]; then
+
+    BACKUP_PATH="${OUTPUT_PATH}/run_settings"
+
+    mkdir -p "$BACKUP_PATH"
+
+    cp -R \
+        "${SETTINGS_PATH}/." \
+        "$BACKUP_PATH/"
 fi
 
 
-# - Find if we need to backup the settings and find the path if so
-# ----------------------------------------------------------------
-setting_line=$(grep -m 1 "^experiment_backup_settings" ../0_control_files/control_active.txt) 
-do_backup=$(echo ${setting_line##*|}) 
-do_backup=$(echo ${do_backup%%#*}) 
+# ============================================================
+# REPORT
+# ============================================================
 
-# Specify the path (inside the experiment output folder)
-if [ "$do_backup" = "yes" ]; then
- # Make the setting backup path
- backup_path="${summa_out_path}run_settings"
+echo "============================================================"
+echo "RUN SUMMA GRU SUBSET"
+echo "============================================================"
+
+echo "Domain      : $DOMAIN_NAME"
+echo "Experiment  : $EXPERIMENT_ID"
+echo "Array task  : $SLURM_ARRAY_TASK_ID"
+echo "GRU start   : $GRU_START"
+echo "GRU count   : $GRU_COUNT"
+echo "Total GRUs  : $TOTAL_GRUS"
+echo "Executable  : $SUMMA_EXEC"
+echo "Log         : $LOG_FILE"
+echo "Start       : $(date)"
+
+echo "============================================================"
+
+
+# ============================================================
+# RUN
+# ============================================================
+
+set +e
+
+"$SUMMA_EXEC" \
+    -g "$GRU_START" "$GRU_COUNT" \
+    -m "$FILEMANAGER_PATH" \
+    > "$LOG_FILE" 2>&1
+
+STATUS=$?
+
+set -e
+
+
+# ============================================================
+# VERIFY SUMMA'S OWN SUCCESS MESSAGE
+# ============================================================
+
+MODEL_SUCCESS="no"
+
+if grep -qi "finished simulation successfully" "$LOG_FILE"; then
+    MODEL_SUCCESS="yes"
 fi
 
 
-# -- echo settings
-echo "summa dir   = ${summa_path}"
-echo "summa exe   = ${summa_exe}"
-echo "setting dir = ${settings_path}"
-echo "filemanager = ${filemanager}"
-echo "log dir     = ${summa_log_path}"
-echo "output dir  = ${summa_out_path}"
-echo "backup dir  = ${backup_path}"
+if [ "$STATUS" -ne 0 ] || [ "$MODEL_SUCCESS" != "yes" ]; then
 
+    echo
+    echo "SUMMA subset FAILED."
+    echo "Return code: $STATUS"
+    echo
 
-# --- Run
-# Do the settings backup if needed
-if [ "$do_backup" = "yes" ]; then
- mkdir -p $backup_path
- copy_command="cp -R -n ${settings_path}. ${backup_path}"
- $copy_command
+    tail -40 "$LOG_FILE" || true
+
+    exit 1
 fi
 
-# Run SUMMA
-mkdir -p $summa_log_path
-summa_command="${summa_path}${summa_exe} -g ${gru_start} ${gru_count} -m ${settings_path}${filemanager}"
-$summa_command > $summa_log_path$summa_log_name
 
-
-
-# --- Code provenance
-# Generates a basic log file in the domain folder and copies the control file and itself there.
-# Make a log directory if it doesn't exist
-log_path="${summa_out_path}/_workflow_log"
-mkdir -p $log_path
-
-# Log filename
-today=`date '+%F'`
-log_file="${today}_SUMMA_run_log_grus_${gru_start}_${gru_count}.txt"
-
-# Make the log
-this_file='1_run_summa_as_array.sh'
-echo "Log generated by ${this_file} on `date '+%F %H:%M:%S'`"  > $log_path/$log_file # 1st line, store in new file
-echo 'Ran SUMMA for ${gru_count} GRUs, starting at GRU ${gru_start}.' >> $log_path/$log_file # 2nd line, append to existing file
-
-# Copy this file to log directory
-cp -n $this_file $log_path
-
-
-
-
-
-
-
-
-
-
+echo
+echo "SUMMA subset completed successfully."
+echo "End: $(date)"
