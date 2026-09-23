@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=nwam_preprocess
 #SBATCH --time=02:00:00
 #SBATCH --mem=16G
@@ -65,7 +66,7 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/work/comphyd_lab/users/arman.haddadchi/NWAM/CWARHM_multibasin"
+CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
 
 PREP_DIR="${CWARHM}/00_prepare_domain_shapefiles"
 
@@ -249,10 +250,10 @@ done
 # ENVIRONMENT / LOG DIRECTORY
 # ============================================================
 
-module load conda/base
+# module load conda/base
 
 
-mkdir -p "${PREP_DIR}/slurm_logs"
+# mkdir -p "${PREP_DIR}/slurm_logs"
 
 
 # ============================================================
@@ -326,10 +327,13 @@ echo
 
 
 cd "${FORCING_PREP_DIR}"
+echo "$PWD"
+echo
 
+echo "${GRID_SCRIPT}"
 
-conda run --no-capture-output -n nwam \
-    python "${GRID_SCRIPT}" \
+#conda run --no-capture-output -n nwam \
+python "${GRID_SCRIPT}" \
     "${CONTROL_FILE}"
 
 
