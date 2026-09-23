@@ -1,0 +1,3 @@
+domain_name,source_directory,control_file,catchment_shp_file,river_network_shp_file,river_basin_shp_file
+CAN_01AD003,/home/zhentao/projects/rrg-h294liu/data/misc-data/CAMELS-SPAT/shapefiles/macro-scale/shapes-distributed/CAN_01AD003,control_CAN_01AD003.txt,CAN_01AD003_distributed_basin.shp,CAN_01AD003_distributed_river.shp,CAN_01AD003_distributed_basin.shp
+CAN_01AJ003,/home/zhentao/projects/rrg-h294liu/data/misc-data/CAMELS-SPAT/shapefiles/macro-scale/shapes-distributed/CAN_01AJ003,control_CAN_01AJ003.txt,CAN_01AJ003_distributed_basin.shp,CAN_01AJ003_distributed_river.shp,CAN_01AJ003_distributed_basin.shp

@@ -94,11 +94,11 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 CWARHM_ROOT = SCRIPT_DIR.parent
 CONTROL_DIR = CWARHM_ROOT / "0_control_files"
 
-CSV_FILE = CONTROL_DIR / "MERIT_Pfaf3_control_file_inputs.csv"
-DEFAULT_TEMPLATE = CONTROL_DIR / "control_MERIT_717.txt"
+CSV_FILE = CONTROL_DIR / "CAN_control_file_inputs.csv"
+DEFAULT_TEMPLATE = CONTROL_DIR / "control_CAN_04CA003.txt"
 
 SHARED_SOIL_CLASS_DIR = Path(
-    "/work/comphyd_lab/data/geospatial-data/soil_classes"
+    "/home/zhentao/projects/rrg-h294liu/data/geospatial-data/soil_classes"
 )
 
 DEFAULT_BBOX_BUFFER = 0.25

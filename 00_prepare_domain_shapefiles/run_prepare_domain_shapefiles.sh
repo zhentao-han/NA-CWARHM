@@ -50,7 +50,7 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/work/comphyd_lab/users/arman.haddadchi/NWAM/CWARHM_multibasin"
+CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
 
 SCRIPT_DIR="${CWARHM}/00_prepare_domain_shapefiles"
 
@@ -142,7 +142,7 @@ fi
 # ENVIRONMENT
 # ============================================================
 
-module load conda/base
+# module load conda/base
 
 
 cd "${SCRIPT_DIR}"
@@ -176,8 +176,8 @@ echo "----------------------------------------------------------------------"
 echo
 
 
-conda run --no-capture-output -n nwam \
-    python "${RIVER_SCRIPT}" \
+#conda run --no-capture-output -n nwam \
+python "${RIVER_SCRIPT}" \
     "${CONTROL_FILE}"
 
 
@@ -197,8 +197,8 @@ echo "----------------------------------------------------------------------"
 echo
 
 
-conda run --no-capture-output -n nwam \
-    python "${CATCHMENT_SCRIPT}" \
+# conda run --no-capture-output -n nwam \
+python "${CATCHMENT_SCRIPT}" \
     "${CONTROL_FILE}"
 
 
@@ -219,8 +219,8 @@ echo
 
 
 REPORT_OUTPUT=$(
-    conda run --no-capture-output -n nwam \
-        python "${REPORT_SCRIPT}" \
+    #conda run --no-capture-output -n nwam \
+    python "${REPORT_SCRIPT}" \
         "${CONTROL_FILE}"
 )
 
