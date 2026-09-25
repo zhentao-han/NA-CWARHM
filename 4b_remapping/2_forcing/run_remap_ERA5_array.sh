@@ -53,7 +53,7 @@ set -euo pipefail
 CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
 SCRIPT_DIR="${CWARHM}/4b_remapping/2_forcing"
 
-PYTHON_SCRIPT="${SCRIPT_DIR}/1a_remap_ERA5.py"
+PYTHON_SCRIPT="${SCRIPT_DIR}/2a_remap_all_ERA5.py"
 # 2a_remap_all_ERA5.py
 
 # ============================================================
@@ -341,9 +341,9 @@ for TASK_INDEX in $(seq "${START_INDEX}" "${END_INDEX}"); do
     # --------------------------------------------------------
 
     if python "${PYTHON_SCRIPT}" \
-        "${CONTROL_FILE}" 
-#        "${YEAR}" \
-#        "${MONTH}"
+        "${CONTROL_FILE}" \
+        "${YEAR}" \
+        "${MONTH}"
     then
 
         PROCESSED=$((PROCESSED + 1))

@@ -519,7 +519,8 @@ case_name = (
 
 remap_files = sorted(
     remap_dir.glob(
-        f"{case_name}_remapping_file_*.csv"
+        f"{case_name}_remapping.csv"
+        #f"{case_name}_remapping_file_*.csv"
     )
 )
 
@@ -776,14 +777,22 @@ def remap_month(
     )
 
 
+#    expected_output = (
+#        output_dir
+#        / (
+#            f"{case_name}_remapped_"
+#            f"{forcing_file.name}"
+#        )
+#    )
+
+
     expected_output = (
         output_dir
         / (
             f"{case_name}_remapped_"
-            f"{forcing_file.name}"
+            f"{year:04d}-{month:02d}-01-00-00-00.nc"
         )
     )
-
 
     if not forcing_file.exists():
 
@@ -877,7 +886,7 @@ def remap_month(
     # EASYMORE
     # ========================================================
 
-    esmr = easymore.Easymore()
+    esmr = easymore.easymore()
 
 
     esmr.case_name = (

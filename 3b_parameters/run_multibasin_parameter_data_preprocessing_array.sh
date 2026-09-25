@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=nwam_param_data
 #SBATCH --time=06:00:00
 #SBATCH --mem=16G
@@ -75,7 +76,7 @@ set -euo pipefail
 # CWARHM ROOT
 # ============================================================
 
-CWARHM="/work/comphyd_lab/users/arman.haddadchi/NWAM/CWARHM_multibasin"
+CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
 
 PARAM_DIR="${CWARHM}/3b_parameters"
 
@@ -273,18 +274,18 @@ done
 # ENVIRONMENT
 # ============================================================
 
-module load conda/base
+# module load conda/base
 
 
 # Activate nwam so all shell scripts use the GDAL installation
 # from the nwam environment. This is particularly important
 # for MODIS HDF4 support.
 
-CONDA_BASE=$(conda info --base)
+#CONDA_BASE=$(conda info --base)
 
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
+#source "${CONDA_BASE}/etc/profile.d/conda.sh"
 
-conda activate nwam
+#conda activate nwam
 
 
 # ============================================================

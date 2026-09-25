@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=nwam_model_input
 #SBATCH --time=02:00:00
 #SBATCH --mem=8G
@@ -54,7 +55,7 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/work/comphyd_lab/users/arman.haddadchi/NWAM/CWARHM_multibasin"
+CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
 
 MODEL_INPUT="${CWARHM}/5_model_input"
 
@@ -180,10 +181,10 @@ DOMAIN_ROOT="${ROOT_PATH}/domain_${DOMAIN}"
 # ENVIRONMENT
 # ============================================================
 
-module load conda/base
+# module load conda/base
 
-PYTHON=$(conda run -n nwam which python)
-
+#PYTHON=$(conda run -n nwam which python)
+PYTHON=$(which python)
 
 if [ ! -x "${PYTHON}" ]; then
 

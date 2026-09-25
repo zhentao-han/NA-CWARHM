@@ -33,7 +33,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 CWARHM_ROOT = SCRIPT_DIR.parent.parent
 
 MERIT_ARCHIVE = Path(
-    "/work/comphyd_lab/data/geospatial-data/MERIT-Hydro/elv"
+    "/home/zhentao/projects/rrg-h294liu/data/geospatial-data/MERIT-Hydro/elv"
 )
 
 

@@ -136,8 +136,7 @@ parameter_land_list_path    | default
 parameter_land_list_name    | daac_mcd12q1_data_links.txt
 
 # Shared ARC MODIS MCD12Q1.061 collection.
-parameter_land_raw_path     |
-/home/zhentao/projects/rrg-h294liu/data/geospatial-data/MODIS/MCD12Q1.061/2021.01.01
+parameter_land_raw_path     | /home/zhentao/projects/rrg-h294liu/data/geospatial-data/MODIS/MCD12Q1.061/2021.01.01
 
 parameter_land_vrt1_path    | default
 parameter_land_vrt2_path    | default

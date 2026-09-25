@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=emearth_remap
 #SBATCH --time=08:00:00
 #SBATCH --mem=4G
@@ -49,7 +50,7 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/work/comphyd_lab/users/arman.haddadchi/NWAM/CWARHM_multibasin"
+CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
 
 SCRIPT_DIR="${CWARHM}/4b_remapping/2_forcing"
 
@@ -161,7 +162,7 @@ TASK_COUNT=$((END_INDEX - START_INDEX + 1))
 # ENVIRONMENT
 # ============================================================
 
-module load conda/base
+# module load conda/base
 
 cd "${SCRIPT_DIR}"
 
@@ -340,8 +341,7 @@ for TASK_INDEX in $(seq "${START_INDEX}" "${END_INDEX}"); do
     # RUN EXISTING EM-EARTH REMAPPING
     # --------------------------------------------------------
 
-    if conda run --no-capture-output -n nwam \
-        python "${PYTHON_SCRIPT}" \
+    if python "${PYTHON_SCRIPT}" \
         "${CONTROL_FILE}" \
         "${YEAR}" \
         "${MONTH}"

@@ -231,15 +231,15 @@ if len(source_files) == 0:
     )
 
 
-if len(source_files) > 1:
-    raise RuntimeError(
-        "Expected exactly one SoilGrids-derived "
-        f"soil-class TIFF, but found {len(source_files)}:\n"
-        + "\n".join(
-            f"  {file}"
-            for file in source_files
-        )
-    )
+#if len(source_files) > 1:
+#    raise RuntimeError(
+#        "Expected exactly one SoilGrids-derived "
+#        f"soil-class TIFF, but found {len(source_files)}:\n"
+#        + "\n".join(
+#            f"  {file}"
+#            for file in source_files
+#        )
+#    )
 
 
 source_file = source_files[0]

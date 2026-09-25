@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=nwam_hru_param
 #SBATCH --time=04:00:00
 #SBATCH --mem=12G
@@ -62,7 +63,7 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/work/comphyd_lab/users/arman.haddadchi/NWAM/CWARHM_multibasin"
+CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
 
 SCRIPT_DIR="${CWARHM}/4b_remapping/1_topo"
 
@@ -234,7 +235,7 @@ done
 # ENVIRONMENT
 # ============================================================
 
-module load conda/base
+# module load conda/base
 
 
 mkdir -p "${SCRIPT_DIR}/slurm_logs"
@@ -353,8 +354,8 @@ echo "----------------------------------------------------------------------"
 echo
 
 
-conda run --no-capture-output -n nwam \
-    python "${ELEVATION_SCRIPT}" \
+#conda run --no-capture-output -n nwam \
+python "${ELEVATION_SCRIPT}" \
     "${CONTROL_FILE}"
 
 
@@ -374,8 +375,8 @@ echo "----------------------------------------------------------------------"
 echo
 
 
-conda run --no-capture-output -n nwam \
-    python "${SOIL_SCRIPT}" \
+#conda run --no-capture-output -n nwam \
+python "${SOIL_SCRIPT}" \
     "${CONTROL_FILE}"
 
 
@@ -395,8 +396,8 @@ echo "----------------------------------------------------------------------"
 echo
 
 
-conda run --no-capture-output -n nwam \
-    python "${LAND_SCRIPT}" \
+#conda run --no-capture-output -n nwam \
+python "${LAND_SCRIPT}" \
     "${CONTROL_FILE}"
 
 
@@ -509,7 +510,7 @@ echo
 # BASIC ATTRIBUTE VERIFICATION
 # ============================================================
 
-conda run --no-capture-output -n nwam \
+#conda run --no-capture-output -n nwam \
 python - \
 "${DEM_OUTPUT}" \
 "${SOIL_OUTPUT}" \
