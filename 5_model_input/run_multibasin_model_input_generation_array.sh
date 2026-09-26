@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=nwam_model_input
 #SBATCH --time=02:00:00
 #SBATCH --mem=8G
@@ -55,7 +54,7 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
+CWARHM="${CWARHM:-/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM1}"
 
 MODEL_INPUT="${CWARHM}/5_model_input"
 

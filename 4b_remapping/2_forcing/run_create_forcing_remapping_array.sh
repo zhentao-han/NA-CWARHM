@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=forcing_weights
 #SBATCH --time=02:00:00
 #SBATCH --mem=8G
@@ -9,7 +8,8 @@
 
 set -euo pipefail
 
-CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
+CWARHM="${CWARHM:-/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM1}"
+
 SCRIPT_DIR="${CWARHM}/4b_remapping/2_forcing"
 
 ERA5_SCRIPT="${SCRIPT_DIR}/1a_remap_ERA5.py"

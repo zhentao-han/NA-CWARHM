@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=nwam_preprocess
 #SBATCH --time=02:00:00
 #SBATCH --mem=16G
@@ -66,7 +65,7 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
+CWARHM="${CWARHM:-/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM}"
 
 PREP_DIR="${CWARHM}/00_prepare_domain_shapefiles"
 

@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=nwam_param_data
 #SBATCH --time=06:00:00
 #SBATCH --mem=16G
@@ -76,7 +75,7 @@ set -euo pipefail
 # CWARHM ROOT
 # ============================================================
 
-CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
+CWARHM="${CWARHM:-/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM1}"
 
 PARAM_DIR="${CWARHM}/3b_parameters"
 

@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=emearth_remap
 #SBATCH --time=08:00:00
 #SBATCH --mem=4G
@@ -50,7 +49,7 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
+CWARHM="${CWARHM:-/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM1}"
 
 SCRIPT_DIR="${CWARHM}/4b_remapping/2_forcing"
 

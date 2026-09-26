@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=era5_remap
 #SBATCH --time=01:00:00
 #SBATCH --mem=4G
@@ -50,7 +49,8 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
+CWARHM="${CWARHM:-/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM11}"
+#"/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
 SCRIPT_DIR="${CWARHM}/4b_remapping/2_forcing"
 
 PYTHON_SCRIPT="${SCRIPT_DIR}/2a_remap_all_ERA5.py"

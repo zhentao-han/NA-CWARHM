@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --account=rrg-h294liu_cpu
 #SBATCH --job-name=nwam_hru_param
 #SBATCH --time=04:00:00
 #SBATCH --mem=12G
@@ -63,7 +62,7 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
+CWARHM="${CWARHM:-/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM1}"
 
 SCRIPT_DIR="${CWARHM}/4b_remapping/1_topo"
 
