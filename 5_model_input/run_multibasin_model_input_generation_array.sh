@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=nwam_model_input
-#SBATCH --time=02:00:00
+#SBATCH --time=01:00:00
 #SBATCH --mem=8G
 #SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/model_input_%A_%a.out

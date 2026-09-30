@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=nwam_param_data
-#SBATCH --time=06:00:00
-#SBATCH --mem=16G
-#SBATCH --cpus-per-task=2
+#SBATCH --time=00:40:00
+#SBATCH --mem=36G
+#SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/parameter_data_%A_%a.out
 #SBATCH --error=slurm_logs/parameter_data_%A_%a.err
 
@@ -103,6 +103,8 @@ SOIL_EXTRACT="${PARAM_DIR}/SOILGRIDS/2_extract_domain/extract_domain.py"
 
 
 # MODIS
+
+MODIS_COPY="${PARAM_DIR}/MODIS_MCD12Q1_V6/1_copy/copy_MODIS_landclass.sh"
 
 MODIS_VRT="${PARAM_DIR}/MODIS_MCD12Q1_V6/2_create_vrt/make_vrt_per_year.sh"
 
@@ -247,6 +249,7 @@ REQUIRED_FILES=(
     "${DEM_CROP}"
     "${DEM_TIF}"
     "${SOIL_EXTRACT}"
+    "${MODIS_COPY}"
     "${MODIS_VRT}"
     "${MODIS_REPROJECT}"
     "${MODIS_CROP}"
@@ -472,6 +475,17 @@ echo "======================================================================"
 # STEP 7
 # CREATE YEARLY MODIS VRT
 # ------------------------------------------------------------
+
+
+echo
+echo "----------------------------------------------------------------------"
+echo "STEP 7_0: COPY MODIS YEARLY HDF"
+echo "----------------------------------------------------------------------"
+echo
+
+bash "${MODIS_COPY}" \
+    "${CONTROL_FILE}"
+
 
 echo
 echo "----------------------------------------------------------------------"

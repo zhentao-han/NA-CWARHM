@@ -6,16 +6,16 @@
 # Modeling domain settings
 # =====================================================================
 
-root_path                   | /work/comphyd_lab/users/arman.haddadchi/NWAM/NWAM_Data
-domain_name                         | CAN_05BB001
+root_path                   | /home/zhentao/scratch/NAHM/CWARHM_data
+domain_name                         | CAN_04CA003
 
 
 # =====================================================================
 # Shapefile settings - SUMMA catchment file
 # =====================================================================
 
-catchment_shp_path                  | /work/comphyd_lab/users/arman.haddadchi/CENTURY_Basins/CAN_05BB001/shapefiles/catchment
-catchment_shp_name                  | CAN_05BB001_distributed_basin.shp
+catchment_shp_path                  | /work/comphyd_lab/users/arman.haddadchi/CENTURY_Basins/CAN_04CA003/shapefiles/catchment
+catchment_shp_name                  | CAN_04CA003_distributed_basin.shp
 catchment_shp_gruid                 | GRU_ID
 catchment_shp_hruid                 | HRU_ID
 catchment_shp_area                  | HRU_area
@@ -27,12 +27,12 @@ catchment_shp_lon                   | center_lon
 # Shapefile settings - mizuRoute river network file
 # =====================================================================
 
-river_network_shp_path              | /work/comphyd_lab/users/arman.haddadchi/CENTURY_Basins/CAN_05BB001/shapefiles/river_network
-river_network_shp_name              | CAN_05BB001_distributed_river.shp
+river_network_shp_path              | /work/comphyd_lab/users/arman.haddadchi/CENTURY_Basins/CAN_04CA003/shapefiles/river_network
+river_network_shp_name              | CAN_04CA003_distributed_river.shp
 river_network_shp_segid             | COMID
 river_network_shp_downsegid         | NextDownID
 river_network_shp_slope             | slope
-river_network_shp_length_source     | new_len_km
+river_network_shp_length_source     | lengthkm
 river_network_shp_length            | length_m
 
 
@@ -40,8 +40,8 @@ river_network_shp_length            | length_m
 # Shapefile settings - mizuRoute routing-basin file
 # =====================================================================
 
-river_basin_shp_path                | /work/comphyd_lab/users/arman.haddadchi/CENTURY_Basins/CAN_05BB001/shapefiles/river_basins
-river_basin_shp_name                | CAN_05BB001_distributed_basin.shp
+river_basin_shp_path                | /work/comphyd_lab/users/arman.haddadchi/CENTURY_Basins/CAN_04CA003/shapefiles/river_basins
+river_basin_shp_name                | CAN_04CA003_distributed_basin.shp
 river_basin_shp_rm_hruid            | COMID
 river_basin_shp_area                | area
 river_basin_shp_hru_to_seg          | hru_to_seg
@@ -58,21 +58,12 @@ river_basin_needs_remap             | no
 # Installation settings
 # =====================================================================
 
-github_summa                | https://github.com/CH-Earth/summa
-github_mizuroute            | https://github.com/ESCOMP/mizuRoute
 
-summa_version               | v4.0.0-exp-sundials.2
-summa_git_hash              | cb78b94040ee9d33bb6d6f16677ae0ac30c3b491
-sundials_version            | v7.1.1
-
-mizuroute_version           | v3.1.1
-mizuroute_git_hash          | 28514dea3fd28a2f820c7ecaa9014f820c1bb220
-
-install_path_summa          | default
-install_path_mizuroute      | default
+install_path_summa          | /home/zhentao/projects/rrg-h294liu/zhentao/CWARHM/CWARHM_data/installs/summa
+install_path_mizuroute      | /home/zhentao/projects/rrg-h294liu/zhentao/CWARHM/CWARHM_data/installs/mizuRoute
 
 exe_name_summa              | summa.exe
-exe_name_mizuroute          | mizuroute.exe
+exe_name_mizuroute          | route_runoff.exe
 
 
 # =====================================================================
@@ -80,22 +71,22 @@ exe_name_mizuroute          | mizuroute.exe
 # =====================================================================
 
 # Shared forcing archive coverage.
-forcing_raw_time            | 1950,2019
+forcing_raw_time            | 2017,2019
 
 # LAT_MAX/LON_MIN/LAT_MIN/LON_MAX
-forcing_raw_space            | 51.785417/-116.593750/50.905417/-115.475417
+forcing_raw_space            | 52.741250/-92.878750/52.233750/-92.275417
 
 forcing_time_step_size      | 3600
 forcing_measurement_height  | 3
 
 # Shared ARC forcing archives.
-forcing_emearth_path        | /work/comphyd_lab/data/meteorological-data/EM_Earth_v1/deterministic_hourly
+forcing_emearth_path        | /home/zhentao/projects/rrg-h294liu/data/meteorological-data/EM_Earth_v1/deterministic_hourly
 
 # EM-Earth precipitation source variable.
 # Valid options: prcp, prcp_corrected.
 # Downstream SUMMA variable remains pptrate.
 forcing_emearth_precip              | prcp
-forcing_era5_path           | /work/comphyd_lab/data/meteorological-data/era5
+forcing_era5_path           | /home/zhentao/projects/rrg-h294liu/data/meteorological-data/era5/2_merged_data
 
 # Forcing-grid shapefiles used for EASYMORE.
 forcing_shape_path          | default
@@ -142,7 +133,7 @@ parameter_dem_tif_name      | elevation.tif
 
 parameter_soil_hydro_ID     | 1361509511e44adfba814f6950c6e742
 
-parameter_soil_raw_path             | /work/comphyd_lab/data/geospatial-data/soil_classes
+parameter_soil_raw_path             | /home/zhentao/projects/rrg-h294liu/data/geospatial-data/soil_classes
 
 # Shared ARC soil-class product.
 parameter_soil_domain_path          | default
@@ -157,7 +148,9 @@ parameter_land_list_path    | default
 parameter_land_list_name    | daac_mcd12q1_data_links.txt
 
 # Shared ARC MODIS MCD12Q1.061 collection.
-parameter_land_raw_path     | /work/comphyd_lab/data/geospatial-data/MODIS/MCD12Q1.061/2022.01.01
+parameter_land_database_path | /home/zhentao/projects/rrg-h294liu/data/geospatial-data/MODIS/MCD12Q1.061
+
+parameter_land_raw_path     | default
 
 parameter_land_vrt1_path    | default
 parameter_land_vrt2_path    | default
