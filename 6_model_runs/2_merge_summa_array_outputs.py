@@ -39,21 +39,33 @@ import re
 import netCDF4 as nc
 import numpy as np
 
+import os
 
 # ============================================================
 # PATHS
 # ============================================================
 
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 CWARHM_ROOT = SCRIPT_DIR.parent
+print("CWARHM_ROOT: ")
+print(CWARHM_ROOT)
+
+#CONTROL_FILE = (
+#    CWARHM_ROOT 
+#    / "0_control_files" 
+#    / "control_MERIT_71.txt"
+#)
 
 CONTROL_FILE = (
     CWARHM_ROOT
     / "0_control_files"
-    / "control_active.txt"
+    / os.environ.get("CONTROL_FILE", "control_active.txt")
 )
 
 
+print("CONTROL_FILE: ")
+print(CONTROL_FILE)
 # ============================================================
 # CONTROL READER
 # ============================================================
@@ -61,7 +73,7 @@ CONTROL_FILE = (
 def read_control(setting):
     """Read one exact setting from control_active.txt."""
 
-    with CONTROL_FILE.open() as contents:
+    with open(CONTROL_FILE) as contents:
 
         for line in contents:
 

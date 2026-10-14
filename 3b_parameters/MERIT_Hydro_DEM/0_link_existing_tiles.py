@@ -381,6 +381,13 @@ linked = []
 existing = []
 
 
+KNOWN_MISSING_TILES = {
+    "elv_n00w150.tar",
+    "elv_s60w120.tar",
+    "elv_s60w150.tar",
+}
+
+
 for filename in required_tiles:
 
     source = (
@@ -398,6 +405,12 @@ for filename in required_tiles:
     )
 
     if not source.exists():
+        
+        if filename in KNOWN_MISSING_TILES:
+            print(
+                " MISSING from shared archive -- skipped"
+            )
+            continue
 
         print(
             "  MISSING from shared archive"
@@ -466,6 +479,9 @@ if missing:
 # ============================================================
 
 for filename in required_tiles:
+
+    if filename in KNOWN_MISSING_TILES:
+        continue
 
     target = (
         target_dir

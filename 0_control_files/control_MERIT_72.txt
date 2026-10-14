@@ -6,7 +6,7 @@
 # Modeling domain settings
 # =====================================================================
 
-root_path                   | /home/zhentao/scratch/NAHM/CWARHM_data
+root_path                   | /home/zhentao/scratch/NAHM/NA_data
 domain_name                         | MERIT_72
 
 
@@ -57,6 +57,7 @@ river_basin_needs_remap             | no
 # =====================================================================
 # Installation settings
 # =====================================================================
+
 
 install_path_summa          | /home/zhentao/projects/rrg-h294liu/zhentao/CWARHM/CWARHM_data/installs/summa
 install_path_mizuroute      | /home/zhentao/projects/rrg-h294liu/zhentao/CWARHM/CWARHM_data/installs/mizuRoute
@@ -212,6 +213,9 @@ settings_summa_forcing_list | forcingFileList.txt
 settings_summa_attributes   | attributes.nc
 
 settings_summa_connect_HRUs | no
+
+
+calib_params_file_path      | /home/zhentao/projects/rrg-h294liu/zhentao/global_param/global_param_nc
 
 settings_summa_trialParam_n | 1
 settings_summa_trialParam_1 | maxstep,900

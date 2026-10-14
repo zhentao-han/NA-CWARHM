@@ -1,14 +1,12 @@
 #!/bin/bash
-
 #SBATCH --job-name=mizuRoute
 #SBATCH --nodes=1
 #SBATCH --ntasks=4
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8G
 #SBATCH --time=2-00:00:00
-#SBATCH --partition=cpu2025,cpu2023,cpu2022
-#SBATCH --output=mizuRoute_%j.out
-#SBATCH --error=mizuRoute_%j.err
+#SBATCH --output=./slurm_logs/mizuRoute_%j.out
+#SBATCH --error=./slurm_logs/mizuRoute_%j.err
 
 set -euo pipefail
 
@@ -16,15 +14,24 @@ set -euo pipefail
 # ============================================================
 # PATHS / CONTROL
 # ============================================================
+CWARHM="${CWARHM:-/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM1}"
+SCRIPT_DIR="${CWARHM}/6_model_runs"
+CONTROL="${CWARHM}/0_control_files/${CONTROL_FILE}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CWARHM="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CONTROL="${CWARHM}/0_control_files/control_active.txt"
+if [ ! -f "$CONTROL" ]; then
+    echo "ERROR: Control file not found:"
+    echo "$CONTROL"
+    exit 1
+fi
 
+echo "Using control file:"
+echo "$CONTROL"
 
 # ============================================================
 # CONTROL READER
 # ============================================================
+
+mkdir -p ./slurm_logs
 
 read_control() {
 
@@ -118,24 +125,24 @@ LOG_FILE="${LOG_PATH}/mizuRoute_log.txt"
 # ENVIRONMENT
 # ============================================================
 
-module load conda/base
+#module load conda/base
 
-conda activate nwam_parallel
-
-
-if [ "${CONDA_DEFAULT_ENV:-}" != "nwam_parallel" ]; then
-
-    echo
-    echo "ERROR: Failed to activate nwam_parallel."
-    echo "Active environment: ${CONDA_DEFAULT_ENV:-none}"
-
-    exit 1
-fi
+#conda activate nwam_parallel
 
 
-export PATH="${CONDA_PREFIX}/bin:${PATH}"
+#if [ "${CONDA_DEFAULT_ENV:-}" != "nwam_parallel" ]; then
+#
+#    echo
+#    echo "ERROR: Failed to activate nwam_parallel."
+#    echo "Active environment: ${CONDA_DEFAULT_ENV:-none}"
+#
+#    exit 1
+#fi
 
-export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
+
+#export PATH="${CONDA_PREFIX}/bin:${PATH}"
+
+#export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
 
 
 # ============================================================
@@ -395,7 +402,7 @@ echo "============================================================"
 
 echo "Domain       : $DOMAIN_NAME"
 echo "Experiment   : $EXPERIMENT_ID"
-echo "Environment  : $CONDA_DEFAULT_ENV"
+#echo "Environment  : $CONDA_DEFAULT_ENV"
 
 echo
 echo "MPI tasks    : $MPI_TASKS"
@@ -541,8 +548,8 @@ RUN_LOG="$(
     echo "Domain: $DOMAIN_NAME"
     echo "Experiment: $EXPERIMENT_ID"
     echo
-    echo "Environment: $CONDA_DEFAULT_ENV"
-    echo "Conda prefix: $CONDA_PREFIX"
+#    echo "Environment: $CONDA_DEFAULT_ENV"
+#    echo "Conda prefix: $CONDA_PREFIX"
     echo
     echo "MPI tasks: $MPI_TASKS"
     echo "PIO backend: pnetcdf"

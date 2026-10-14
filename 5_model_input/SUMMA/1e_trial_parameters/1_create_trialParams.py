@@ -33,6 +33,22 @@
 #
 # where N must equal the number of HRUs.
 #
+# >>> CHANGED (1): header documentation for the new GRU content
+# Dimensions and ID variables written to trialParams.nc
+# (same layout as attributes.nc):
+#
+#   dimensions : hru, gru
+#   hruId(hru) : HRU IDs, in the forcing-file HRU order
+#   gruId(gru) : unique GRU IDs, in order of first appearance
+#                after the catchment is reordered to the forcing
+#                HRU order (identical to attributes.nc gruId)
+#
+# GRU IDs come from the Stage-00 prepared catchment shapefile
+# (catchment_shp_hruid / catchment_shp_gruid), exactly as in
+# 1_initialize_attributes_nc.py. Trial parameters themselves
+# remain HRU-based, i.e. they are dimensioned (hru,).
+# <<< END CHANGED (1)
+#
 # IMPORTANT
 # ---------
 # This script reads the domain-specific control file supplied on
@@ -51,6 +67,11 @@ from pathlib import Path
 from datetime import datetime
 from shutil import copy2
 
+# >>> CHANGED (2): geopandas and pandas are needed to read the
+# >>> prepared catchment shapefile and build the GRU list
+import geopandas as gpd
+import pandas as pd
+# <<< END CHANGED (2)
 import netCDF4 as nc4
 import numpy as np
 import xarray as xr
@@ -176,6 +197,135 @@ def resolve_path(setting, default_suffix):
     return Path(
         value
     )
+
+
+# >>> CHANGED (3): helper functions copied unchanged from
+# >>> 1_initialize_attributes_nc.py so GRU handling is identical
+def convert_integer_ids(values, name):
+    """
+    Validate numeric IDs and return int64 values.
+    """
+
+    values = (
+        np.asarray(
+            values
+        )
+        .reshape(-1)
+    )
+
+    if values.ndim != 1:
+
+        raise RuntimeError(
+            f"{name} must be one-dimensional.\n"
+            f"Shape found: {values.shape}"
+        )
+
+    if values.size == 0:
+
+        raise RuntimeError(
+            f"No values found for {name}."
+        )
+
+    try:
+
+        values_float = values.astype(
+            np.float64
+        )
+
+    except Exception as exc:
+
+        raise RuntimeError(
+            f"{name} could not be converted "
+            "to numeric values."
+        ) from exc
+
+    if not np.all(
+        np.isfinite(
+            values_float
+        )
+    ):
+
+        raise RuntimeError(
+            f"{name} contains non-finite values."
+        )
+
+    if not np.allclose(
+        values_float,
+        np.round(
+            values_float
+        )
+    ):
+
+        raise RuntimeError(
+            f"{name} contains non-integer values."
+        )
+
+    return (
+        np.round(
+            values_float
+        )
+        .astype(np.int64)
+    )
+
+
+def validate_int32(values, name):
+    """
+    Ensure IDs fit the int32 representation used for gruId
+    (same as attributes.nc).
+    """
+
+    values = np.asarray(
+        values,
+        dtype=np.int64
+    )
+
+    info = np.iinfo(
+        np.int32
+    )
+
+    if (
+        np.any(values < info.min)
+        or np.any(values > info.max)
+    ):
+
+        raise RuntimeError(
+            f"{name} contains values outside the "
+            "32-bit integer range."
+        )
+
+
+def validate_gru_contiguity(gru_values):
+    """
+    Verify that each GRU occurs in one continuous HRU block.
+    """
+
+    seen = set()
+    previous = None
+
+    for raw_value in gru_values:
+
+        value = int(
+            raw_value
+        )
+
+        if value != previous:
+
+            if value in seen:
+
+                raise RuntimeError(
+                    f"GRU {value} appears in multiple "
+                    "non-contiguous HRU blocks.\n\n"
+                    "SUMMA requires all HRUs belonging "
+                    "to a GRU to be consecutive in the "
+                    "HRU dimension."
+                )
+
+            seen.add(
+                value
+            )
+
+            previous = value
+# <<< END CHANGED (3)
 
 
 # ============================================================
@@ -414,6 +564,200 @@ num_hru = len(
 )
 
 
+# >>> CHANGED (4): NEW SECTION - read the HRU -> GRU mapping from
+# >>> the Stage-00 prepared catchment and derive gruId, following
+# >>> the same logic as 1_initialize_attributes_nc.py
+# ============================================================
+# READ GRU MAPPING FROM PREPARED CATCHMENT
+# ============================================================
+
+catchment_name = read_from_control(
+    CONTROL_FILE,
+    "catchment_shp_name"
+)
+
+# Always use the Stage-00 prepared CWARHM catchment.
+catchment_file = (
+    make_default_path(
+        "shapefiles/catchment"
+    )
+    / catchment_name
+)
+
+hru_field = read_from_control(
+    CONTROL_FILE,
+    "catchment_shp_hruid"
+)
+
+gru_field = read_from_control(
+    CONTROL_FILE,
+    "catchment_shp_gruid"
+)
+
+
+if not catchment_file.exists():
+
+    raise FileNotFoundError(
+        "Prepared CWARHM catchment shapefile "
+        "not found:\n"
+        f"{catchment_file}\n\n"
+        "Run Stage 00 before creating "
+        "trialParams.nc."
+    )
+
+
+shp = gpd.read_file(
+    catchment_file,
+    engine="fiona"
+)
+
+
+if len(shp) == 0:
+
+    raise RuntimeError(
+        "Prepared catchment contains no HRUs."
+    )
+
+
+missing_fields = [
+    field
+    for field in (
+        hru_field,
+        gru_field
+    )
+    if field not in shp.columns
+]
+
+
+if missing_fields:
+
+    raise RuntimeError(
+        "Prepared catchment is missing required "
+        "attribute field(s):\n"
+        + "\n".join(
+            f"  {field}"
+            for field in missing_fields
+        )
+    )
+
+
+for field in (
+    hru_field,
+    gru_field
+):
+
+    try:
+
+        shp[field] = pd.to_numeric(
+            shp[field],
+            errors="raise"
+        )
+
+    except Exception as exc:
+
+        raise RuntimeError(
+            f"Catchment field '{field}' "
+            "contains non-numeric values."
+        ) from exc
+
+
+catchment_hru_ids = convert_integer_ids(
+    shp[
+        hru_field
+    ].to_numpy(),
+    hru_field
+)
+
+catchment_gru_ids = convert_integer_ids(
+    shp[
+        gru_field
+    ].to_numpy(),
+    gru_field
+)
+
+
+if len(
+    np.unique(
+        catchment_hru_ids
+    )
+) != len(
+    catchment_hru_ids
+):
+
+    raise RuntimeError(
+        f"Duplicate {hru_field} values "
+        "found in prepared catchment."
+    )
+
+
+validate_int32(
+    catchment_gru_ids,
+    gru_field
+)
+
+
+# The catchment and forcing must describe the same HRUs.
+
+missing_from_shape = sorted(
+    set(forcing_hru_ids.tolist())
+    - set(catchment_hru_ids.tolist())
+)
+
+extra_in_shape = sorted(
+    set(catchment_hru_ids.tolist())
+    - set(forcing_hru_ids.tolist())
+)
+
+
+if (
+    missing_from_shape
+    or extra_in_shape
+):
+
+    raise RuntimeError(
+        "Prepared catchment and forcing HRU "
+        "sets differ.\n\n"
+        f"Missing from catchment: "
+        f"{missing_from_shape}\n"
+        f"Extra in catchment    : "
+        f"{extra_in_shape}"
+    )
+
+
+# Reorder the catchment GRU IDs to the forcing HRU order
+# (forcing hruId remains authoritative; it is never changed).
+
+hru_to_gru = (
+    pd.Series(
+        catchment_gru_ids,
+        index=catchment_hru_ids
+    )
+    .loc[
+        forcing_hru_ids
+    ]
+    .to_numpy(
+        dtype=np.int64
+    )
+)
+
+# Unique GRUs in the order in which they first occur.
+gru_ids = pd.unique(
+    hru_to_gru
+).astype(
+    np.int64
+)
+
+# SUMMA grouping requirement.
+validate_gru_contiguity(
+    hru_to_gru
+)
+
+num_gru = len(
+    gru_ids
+)
+# <<< END CHANGED (4)
+
+
 # ============================================================
 # READ NUMBER OF TRIAL PARAMETERS
 # ============================================================
@@ -619,6 +963,24 @@ print(
     f"Last HRU ID      : {forcing_hru_ids[-1]}"
 )
 
+# >>> CHANGED (5): report GRU information
+print(
+    f"Catchment        : {catchment_file}"
+)
+
+print(
+    f"GRUs             : {num_gru}"
+)
+
+print(
+    f"First GRU ID     : {gru_ids[0]}"
+)
+
+print(
+    f"Last GRU ID      : {gru_ids[-1]}"
+)
+# <<< END CHANGED (5)
+
 print(
     f"Trial parameters : {num_trial_parameters}"
 )
@@ -722,15 +1084,31 @@ with nc4.Dataset(
         forcing_file.name
     )
 
+    # >>> CHANGED (6a): record where the GRU IDs came from
+    tp.setncattr(
+        "Catchment_source",
+        str(
+            catchment_file
+        )
+    )
+    # <<< END CHANGED (6a)
+
 
     # --------------------------------------------------------
-    # Dimension
+    # Dimensions
     # --------------------------------------------------------
 
     tp.createDimension(
         "hru",
         num_hru
     )
+
+    # >>> CHANGED (6b): add the 'gru' dimension (as in attributes.nc)
+    tp.createDimension(
+        "gru",
+        num_gru
+    )
+    # <<< END CHANGED (6b)
 
 
     # --------------------------------------------------------
@@ -756,6 +1134,34 @@ with nc4.Dataset(
     variable[:] = (
         forcing_hru_ids
     )
+
+
+    # >>> CHANGED (6c): add gruId(gru), same dtype/attributes as
+    # >>> attributes.nc
+    # --------------------------------------------------------
+    # GRU IDs
+    # --------------------------------------------------------
+
+    variable = tp.createVariable(
+        "gruId",
+        "i4",
+        ("gru",)
+    )
+
+    variable.setncattr(
+        "units",
+        "-"
+    )
+
+    variable.setncattr(
+        "long_name",
+        "Grouped response unit identifier"
+    )
+
+    variable[:] = gru_ids.astype(
+        np.int32
+    )
+    # <<< END CHANGED (6c)
 
 
     # --------------------------------------------------------
@@ -809,6 +1215,27 @@ with xr.open_dataset(
         )
 
 
+    # >>> CHANGED (7a): verify the 'gru' dimension
+    if "gru" not in saved.sizes:
+
+        raise RuntimeError(
+            "trialParams.nc is missing the "
+            "'gru' dimension."
+        )
+
+
+    if saved.sizes[
+        "gru"
+    ] != num_gru:
+
+        raise RuntimeError(
+            "trialParams.nc has the wrong GRU count.\n"
+            f"Expected : {num_gru}\n"
+            f"Found    : {saved.sizes['gru']}"
+        )
+    # <<< END CHANGED (7a)
+
+
     # --------------------------------------------------------
     # HRU ID
     # --------------------------------------------------------
@@ -838,6 +1265,38 @@ with xr.open_dataset(
             "trialParams.nc HRU order does not "
             "match SUMMA forcing."
         )
+
+
+    # >>> CHANGED (7b): verify gruId
+    # --------------------------------------------------------
+    # GRU ID
+    # --------------------------------------------------------
+
+    if "gruId" not in saved:
+
+        raise RuntimeError(
+            "gruId is missing from trialParams.nc."
+        )
+
+
+    output_gru_ids = (
+        saved[
+            "gruId"
+        ]
+        .values
+        .astype(np.int64)
+    )
+
+
+    if not np.array_equal(
+        gru_ids,
+        output_gru_ids
+    ):
+
+        raise RuntimeError(
+            "trialParams.nc gruId validation failed."
+        )
+    # <<< END CHANGED (7b)
 
 
     # --------------------------------------------------------
@@ -990,6 +1449,24 @@ with open(
         f"Last HRU ID: {forcing_hru_ids[-1]}\n"
     )
 
+    # >>> CHANGED (8): log GRU information
+    file.write(
+        f"Catchment: {catchment_file}\n"
+    )
+
+    file.write(
+        f"GRUs: {num_gru}\n"
+    )
+
+    file.write(
+        f"First GRU ID: {gru_ids[0]}\n"
+    )
+
+    file.write(
+        f"Last GRU ID: {gru_ids[-1]}\n"
+    )
+    # <<< END CHANGED (8)
+
     file.write(
         f"Trial parameters: "
         f"{num_trial_parameters}\n"
@@ -1049,6 +1526,12 @@ print(
 print(
     f"HRUs             : {num_hru}"
 )
+
+# >>> CHANGED (9): final summary shows GRU count
+print(
+    f"GRUs             : {num_gru}"
+)
+# <<< END CHANGED (9)
 
 print(
     f"Trial parameters : {num_trial_parameters}"

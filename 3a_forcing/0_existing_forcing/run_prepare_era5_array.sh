@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=era5_prep
-#SBATCH --time=01:00:00
+#SBATCH --time=00:30:00
 #SBATCH --mem=4G
 #SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/era5_prep_%A_%a.out

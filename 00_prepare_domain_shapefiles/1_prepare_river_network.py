@@ -762,12 +762,66 @@ if self_loop_count > 0:
         .astype(int)
         .tolist()
     )
-
-    raise RuntimeError(
-        "River network contains self-loop segment(s), "
-        "where segId == downSegId:\n"
-        f"{self_loop_ids}"
+    
+    print()
+    print(
+        f"WARNING: Removing {self_loop_count} "
+        "self-loop segment(s)."
     )
+
+    print(
+        f"Self-loop segment IDs: {self_loop_ids}"
+    )
+
+    # Remove the corresponding features
+    gdf = gdf.loc[
+        ~self_loop_mask
+    ].copy()
+
+    # Keep the normalized ID arrays consistent
+    segment_ids = segment_ids.loc[
+        ~self_loop_mask
+    ].copy()
+
+    down_ids = down_ids.loc[
+        ~self_loop_mask
+    ].copy()
+
+    # Reset the GeoDataFrame index
+    gdf.reset_index(
+        drop=True,
+        inplace=True
+    )
+
+    segment_ids.reset_index(
+        drop=True,
+        inplace=True
+    )
+
+    down_ids.reset_index(
+        drop=True,
+        inplace=True
+    )
+
+else:
+
+    print()
+    print(
+        "No self-loop segments detected."
+    )
+
+print(
+    f"River segments after self-loop removal : "
+    f"{len(gdf)}"
+)
+ 
+ 
+
+#    raise RuntimeError(
+#        "River network contains self-loop segment(s), "
+#        "where segId == downSegId:\n"
+#        f"{self_loop_ids}"
+#    )
 
 
 # ============================================================

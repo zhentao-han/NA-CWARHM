@@ -50,12 +50,11 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
-
+CWARHM="${CWARHM:-/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM}"
 SCRIPT_DIR="${CWARHM}/00_prepare_domain_shapefiles"
 
 RIVER_SCRIPT="${SCRIPT_DIR}/1_prepare_river_network.py"
-CATCHMENT_SCRIPT="${SCRIPT_DIR}/2_prepare_catchment.py"
+CATCHMENT_SCRIPT="${SCRIPT_DIR}/2_prepare_catchment_remove_loop.py"
 REPORT_SCRIPT="${SCRIPT_DIR}/3_report_control_values.py"
 
 

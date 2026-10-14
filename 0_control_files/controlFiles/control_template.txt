@@ -6,7 +6,7 @@
 # Modeling domain settings
 # =====================================================================
 
-root_path                   | /home/zhentao/scratch/NAHM/CWARHM_data
+root_path                   | /home/zhentao/scratch/NAHM/NA_data
 domain_name                         | CAN_04CA003
 
 
@@ -214,6 +214,11 @@ settings_summa_attributes   | attributes.nc
 
 settings_summa_connect_HRUs | no
 
+# Calibrated params file path, the script read all files under the path and
+# copy them to trailParam.nc
+
+calib_params_file_path      | /home/zhentao/projects/rrg-h294liu/zhentao/global_param/global_param_nc
+
 settings_summa_trialParam_n | 1
 settings_summa_trialParam_1 | maxstep,900
 
@@ -234,6 +239,10 @@ settings_mizu_routing_units | m/s
 settings_mizu_routing_dt    | 3600
 
 settings_mizu_output_freq   | yearly
+
+# settings_mizu_output_vars
+# # 0: Sum; 1: IRF; 2: KWT; 3: KW; 4: MC; 5: DW
+
 settings_mizu_output_vars   | 2
 settings_mizu_within_basin  | 0
 

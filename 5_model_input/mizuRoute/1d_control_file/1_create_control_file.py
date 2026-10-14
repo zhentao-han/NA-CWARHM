@@ -423,14 +423,14 @@ if start_year > end_year:
 if sim_start == "default":
 
     sim_start = (
-        f"{start_year}-01-01 00:00"
+        f"{start_year}-10-01 00:00"
     )
 
 
 if sim_end == "default":
 
     sim_end = (
-        f"{end_year}-12-31 23:00"
+        f"{end_year}-09-30 23:00"
     )
 
 
@@ -776,7 +776,7 @@ if within_basin not in {
 
 # Current tested NWAM configuration.
 
-pio_netcdf_type = "netcdf"
+pio_netcdf_type = "pnetcdf"
 pio_netcdf_format = "64bit_offset"
 
 

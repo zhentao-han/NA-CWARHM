@@ -374,6 +374,10 @@ run_python_step \
     "${SUMMA}/1e_trial_parameters/1_create_trialParams.py"
 
 
+run_python_step \
+    "SUMMA STEP 5b: COPY TRIAL PARAMETERS" \
+    "${SUMMA}/1e_trial_parameters/2_copy_trialParams.py"
+
 # ------------------------------------------------------------
 # SUMMA STEP 6
 # ------------------------------------------------------------

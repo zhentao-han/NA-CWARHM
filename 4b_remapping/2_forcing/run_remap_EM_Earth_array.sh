@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=emearth_remap
-#SBATCH --time=08:00:00
-#SBATCH --mem=4G
+#SBATCH --time=02:00:00
+#SBATCH --mem=8G
 #SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/emearth_remap_%A_%a.out
 #SBATCH --error=slurm_logs/emearth_remap_%A_%a.err

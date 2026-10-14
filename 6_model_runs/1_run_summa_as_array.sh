@@ -1,13 +1,11 @@
 #!/bin/bash
 
-#SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8G
-#SBATCH --time=2-00:00:00
-#SBATCH --partition=cpu2025,cpu2023,cpu2022
-#SBATCH --output=SUMMA_%A_%a.out
-#SBATCH --error=SUMMA_%A_%a.err
+#SBATCH --time=08:00:00
+#SBATCH --output=SUMMA_slurm_logs/SUMMA_%A_%a.out
+#SBATCH --error=SUMMA_slurm_logs/SUMMA_%A_%a.err
 
 set -euo pipefail
 
@@ -16,10 +14,12 @@ set -euo pipefail
 # PATHS
 # ============================================================
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CWARHM="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CONTROL="${CWARHM}/0_control_files/control_active.txt"
+CWARHM="${CWARHM:-/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM1}"
+# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# CWARHM="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CONTROL="${CWARHM}/0_control_files/${CONTROL_FILE}"
 
+mkdir -p ./SUMMA_slurm_logs
 
 # ============================================================
 # CONTROL READER
@@ -137,36 +137,42 @@ if ! [[ "$TOTAL_GRUS" =~ ^[1-9][0-9]*$ ]]; then
 fi
 
 
-GRU_START=$(
-    (
-        SLURM_ARRAY_TASK_ID
-        * GRUS_PER_TASK
-        + 1
-    )
-)
+GRU_START=$((SLURM_ARRAY_TASK_ID * GRUS_PER_TASK + 1))
+
+#GRU_START=$(
+#    (
+#        SLURM_ARRAY_TASK_ID
+#        * GRUS_PER_TASK
+#        + 1
+#    )
+#)
 
 
 GRU_COUNT="$GRUS_PER_TASK"
 
 
-GRU_END=$(
-    (
-        GRU_START
-        + GRU_COUNT
-        - 1
-    )
-)
+GRU_END=$((GRU_START + GRU_COUNT - 1))
+
+
+#GRU_END=$(
+#    (
+#        GRU_START
+#        + GRU_COUNT
+#        - 1
+#    )
+#)
 
 
 if [ "$GRU_END" -gt "$TOTAL_GRUS" ]; then
 
-    GRU_COUNT=$(
-        (
-            TOTAL_GRUS
-            - GRU_START
-            + 1
-        )
-    )
+    GRU_COUNT=$((TOTAL_GRUS - GRU_START + 1))
+    #GRU_COUNT=$(
+    #    (
+    #        TOTAL_GRUS
+    #        - GRU_START
+    #        + 1
+    #    )
+    #)
 
 fi
 
@@ -189,24 +195,24 @@ LOG_FILE="${LOG_PATH}/summa_G${GRU_START}_${GRU_COUNT}_${SLURM_ARRAY_TASK_ID}.tx
 # ENVIRONMENT
 # ============================================================
 
-module load conda/base
+# module load conda/base
 
-conda activate nwam_parallel
-
-
-if [ "${CONDA_DEFAULT_ENV:-}" != "nwam_parallel" ]; then
-
-    echo
-    echo "ERROR: Failed to activate nwam_parallel."
-    echo "Active environment: ${CONDA_DEFAULT_ENV:-none}"
-
-    exit 1
-fi
+# conda activate nwam_parallel
 
 
-export PATH="${CONDA_PREFIX}/bin:${PATH}"
+#if [ "${CONDA_DEFAULT_ENV:-}" != "nwam_parallel" ]; then
 
-export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
+#    echo
+#    echo "ERROR: Failed to activate nwam_parallel."
+#    echo "Active environment: ${CONDA_DEFAULT_ENV:-none}"
+#
+#    exit 1
+#fi
+
+
+#export PATH="${CONDA_PREFIX}/bin:${PATH}"
+
+#export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
 
 
 # ============================================================
@@ -252,7 +258,7 @@ if [ "$DO_BACKUP" = "yes" ] \
 
     mkdir -p "$BACKUP_PATH"
 
-    cp -R \
+    cp -Rf \
         "${SETTINGS_PATH}/." \
         "$BACKUP_PATH/"
 
@@ -269,7 +275,7 @@ echo "============================================================"
 
 echo "Domain       : $DOMAIN_NAME"
 echo "Experiment   : $EXPERIMENT_ID"
-echo "Environment  : $CONDA_DEFAULT_ENV"
+#echo "Environment  : $CONDA_DEFAULT_ENV"
 echo "Array task   : $SLURM_ARRAY_TASK_ID"
 echo "GRU start    : $GRU_START"
 echo "GRU count    : $GRU_COUNT"

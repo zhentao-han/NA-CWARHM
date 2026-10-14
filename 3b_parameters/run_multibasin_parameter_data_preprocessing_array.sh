@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=nwam_param_data
-#SBATCH --time=00:40:00
-#SBATCH --mem=36G
+#SBATCH --time=01:00:00
+#SBATCH --mem=48G
 #SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/parameter_data_%A_%a.out
 #SBATCH --error=slurm_logs/parameter_data_%A_%a.err
@@ -116,7 +116,9 @@ MODIS_MULTIBAND="${PARAM_DIR}/MODIS_MCD12Q1_V6/5_multiband_vrt/create_multiband_
 
 MODIS_TIF="${PARAM_DIR}/MODIS_MCD12Q1_V6/6_convert_to_tif/convert_vrt_to_tif.sh"
 
-MODIS_MODE="${PARAM_DIR}/MODIS_MCD12Q1_V6/7_find_mode_land_class/find_mode_landclass.py"
+MODIS_MODE="${PARAM_DIR}/MODIS_MCD12Q1_V6/7_find_mode_land_class/find_mode_landclass_blockwise.py"
+
+#MODIS_MODE="${PARAM_DIR}/MODIS_MCD12Q1_V6/7_find_mode_land_class/find_mode_landclass.py"
 
 
 # ============================================================

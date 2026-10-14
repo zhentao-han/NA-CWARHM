@@ -1,9 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=combine_forcing
-#SBATCH --time=01:00:00
-#SBATCH --ntasks=6
-#SBATCH --mem-per-cpu=4G
-#SBATCH --cpus-per-task=2
+#SBATCH --time=02:00:00
+#SBATCH --mem=8G
+#SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/combine_forcing_%A_%a.out
 #SBATCH --error=slurm_logs/combine_forcing_%A_%a.err
 
