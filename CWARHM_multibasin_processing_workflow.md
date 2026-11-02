@@ -324,7 +324,7 @@ cd "$REPO_ROOT/00_prepare_domain_shapefiles"
 source "$REPO_ROOT/set_batch.sh"
 mkdir -p slurm_logs
 
-sbatch \
+sbatch --account="$SLURM_ACCOUNT" \
     --array=0-$((NBASIN-1))%4 \
     run_multibasin_preprocessing_array.sh \
     "$BASIN_TASK"
@@ -371,8 +371,8 @@ cd "$REPO_ROOT/3a_forcing/0_existing_forcing"
 source "$REPO_ROOT/set_batch.sh"
 mkdir -p slurm_logs
 
-sbatch \
-    --array=0-$((NMONTH-1))%200 \
+sbatch --account="$SLURM_ACCOUNT" \
+    --array=0-$((NJOBS-1))%200 \
     run_prepare_era5_array.sh \
     "$MONTH_TASK"
 ```
@@ -382,8 +382,8 @@ Wait for the ERA5 preparation to finish before starting the corresponding downst
 ## 4B. EM-Earth preparation
 
 ```bash
-sbatch \
-    --array=0-$((NMONTH-1))%200 \
+sbatch --account="$SLURM_ACCOUNT" \
+    --array=0-$((NJOBS-1))%200 \
     run_prepare_emearth_array.sh \
     "$MONTH_TASK"
 ```
@@ -449,7 +449,7 @@ cd "$REPO_ROOT/4b_remapping/2_forcing"
 source "$REPO_ROOT/set_batch.sh"
 mkdir -p slurm_logs
 
-sbatch \
+sbatch --account="$SLURM_ACCOUNT" \
     --array=0-$((NBASIN-1))%5 \
     run_create_forcing_remapping_array.sh \
     "$BASIN_TASK"
@@ -484,8 +484,8 @@ At minimum, confirm that the expected ERA5 and EM-Earth remapping products exist
 ## 5B. Remap ERA5 months
 
 ```bash
-sbatch \
-    --array=0-$((NMONTH-1))%200 \
+sbatch --account="$SLURM_ACCOUNT" \
+    --array=0-$((NJOBS-1))%200 \
     run_remap_ERA5_array.sh \
     "$MONTH_TASK"
 ```
@@ -493,8 +493,8 @@ sbatch \
 ## 5C. Remap EM-Earth months
 
 ```bash
-sbatch \
-    --array=0-$((NMONTH-1))%200 \
+sbatch --account="$SLURM_ACCOUNT" \
+    --array=0-$((NJOBS-1))%200 \
     run_remap_EM_Earth_array.sh \
     "$MONTH_TASK"
 ```
@@ -555,8 +555,8 @@ cd "$REPO_ROOT/4b_remapping/2_forcing"
 source "$REPO_ROOT/set_batch.sh"
 mkdir -p slurm_logs
 
-sbatch \
-    --array=0-$((NMONTH-1))%200 \
+sbatch --account="$SLURM_ACCOUNT" \
+    --array=0-$((NJOBS-1))%200 \
     run_combine_forcing_array.sh \
     "$MONTH_TASK"
 ```
@@ -615,7 +615,7 @@ cd "$REPO_ROOT/3b_parameters"
 source "$REPO_ROOT/set_batch.sh"
 mkdir -p slurm_logs
 
-sbatch \
+sbatch --account="$SLURM_ACCOUNT" \
     --array=0-$((NBASIN-1))%4 \
     run_multibasin_parameter_data_preprocessing_array.sh \
     "$BASIN_TASK"
@@ -707,7 +707,7 @@ cd "$REPO_ROOT/4b_remapping/1_topo"
 source "$REPO_ROOT/set_batch.sh"
 mkdir -p slurm_logs
 
-sbatch \
+sbatch --account="$SLURM_ACCOUNT" \
     --array=0-$((NBASIN-1))%4 \
     run_multibasin_HRU_parameter_remapping_array.sh \
     "$BASIN_TASK"
@@ -766,7 +766,7 @@ cd "$REPO_ROOT/5_model_input"
 source "$REPO_ROOT/set_batch.sh"
 mkdir -p slurm_logs
 
-sbatch \
+sbatch --account="$SLURM_ACCOUNT" \
     --array=0-$((NBASIN-1))%4 \
     run_multibasin_model_input_generation_array.sh \
     "$BASIN_TASK"

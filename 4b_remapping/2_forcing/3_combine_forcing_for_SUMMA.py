@@ -37,6 +37,10 @@
 # python 3_combine_forcing_for_SUMMA.py \
 # /path/to/control_DOMAIN.txt
 #
+# forcing_raw_time may be START,END where each end is YYYY or YYYY-MM:
+#
+#   forcing_raw_time | 1950,2019          (Jan 1950 - Dec 2019)
+#   forcing_raw_time | 1950-03,2019-11     (Mar 1950 - Nov 2019)
 #
 # IMPORTANT
 # ---------
@@ -184,28 +188,78 @@ forcing_years = read_from_control(
 )
 
 
+def parse_year_month(text, default_month):
+    """
+    Accept "YYYY" (month = default_month) or "YYYY-MM".
+    """
+
+    text = text.strip()
+
+    if "-" in text:
+
+        year_text, month_text = text.split(
+            "-",
+            1
+        )
+
+        return int(year_text), int(month_text)
+
+    return int(text), default_month
+
+
 try:
 
-    start_year, end_year = [
-        int(value.strip())
+    start_text, end_text = [
+        value.strip()
         for value in forcing_years.split(",")
     ]
+
+    start_year, start_month = parse_year_month(
+        start_text,
+        1
+    )
+
+    end_year, end_month = parse_year_month(
+        end_text,
+        12
+    )
 
 except Exception as exc:
 
     raise ValueError(
         "forcing_raw_time must have format:\n"
-        "START_YEAR,END_YEAR\n\n"
+        "START,END where each is YYYY or YYYY-MM\n"
+        "For example:\n"
+        "  1950,2019  (January 1950 - December 2019)\n"
+        "  1950-03,2019-11  (March 1950 - November 2019)\n\n"
         f"Current value: {forcing_years}"
     ) from exc
 
 
-if start_year > end_year:
+if not (
+    1 <= start_month <= 12
+    and 1 <= end_month <= 12
+):
 
     raise ValueError(
-        "forcing_raw_time start year is greater "
-        "than end year."
+        "forcing_raw_time contains an invalid month.\n\n"
+        f"Current value: {forcing_years}"
     )
+
+
+if (start_year, start_month) > (end_year, end_month):
+
+    raise ValueError(
+        "forcing_raw_time start date is after "
+        "end date.\n\n"
+        f"Current value: {forcing_years}"
+    )
+
+
+period_text = (
+    f"{start_year}-{start_month:02d} to "
+    f"{end_year}-{end_month:02d}"
+)
 
 
 data_step = int(
@@ -1277,24 +1331,24 @@ if len(sys.argv) == 4:
 
 
     if (
-        year < start_year
-        or year > end_year
-    ):
-
-        raise ValueError(
-            f"Year {year} is outside "
-            f"forcing_raw_time "
-            f"{start_year},{end_year}"
-        )
-
-
-    if (
         month < 1
         or month > 12
     ):
 
         raise ValueError(
             "Month must be between 1 and 12."
+        )
+
+
+    if not (
+        (start_year, start_month)
+        <= (year, month)
+        <= (end_year, end_month)
+    ):
+
+        raise ValueError(
+            f"{year}-{month:02d} is outside "
+            f"forcing_raw_time {period_text}"
         )
 
 
@@ -1325,7 +1379,7 @@ elif len(sys.argv) == 2:
 
     print(
         f"Forcing range: "
-        f"{start_year} - {end_year}"
+        f"{period_text}"
     )
 
 
@@ -1338,6 +1392,15 @@ elif len(sys.argv) == 2:
             1,
             13
         ):
+
+            if not (
+                (start_year, start_month)
+                <= (year, month)
+                <= (end_year, end_month)
+            ):
+
+                continue
+
 
             combine_month(
                 year,

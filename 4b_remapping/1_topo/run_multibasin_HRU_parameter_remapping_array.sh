@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=nwam_hru_param
-#SBATCH --time=01:00:00
+#SBATCH --time=08:00:00
 #SBATCH --mem=16G
 #SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/hru_parameter_%A_%a.out

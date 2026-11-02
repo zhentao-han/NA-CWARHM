@@ -22,8 +22,18 @@
 # -----
 # python 1_create_file_manager.py \
 # /path/to/control_DOMAIN.txt
+#
+# forcing_raw_time may be START,END where each end is YYYY or YYYY-MM:
+#
+#   forcing_raw_time | 1950,2019          (Jan 1950 - Dec 2019)
+#   forcing_raw_time | 1950-03,2019-11     (Mar 1950 - Nov 2019)
+#
+# When experiment_time_start/end are "default", the simulation starts
+# at the first hour of the start month and ends at the last hour of
+# the last day of the end month.
 
 import sys
+import calendar
 from pathlib import Path
 from datetime import datetime
 from shutil import copy2
@@ -131,6 +141,28 @@ def read_from_control(
     )
 
 
+def parse_year_month(
+    text,
+    default_month
+):
+    """
+    Accept "YYYY" (month = default_month) or "YYYY-MM".
+    """
+
+    text = text.strip()
+
+    if "-" in text:
+
+        year_text, month_text = text.split(
+            "-",
+            1
+        )
+
+        return int(year_text), int(month_text)
+
+    return int(text), default_month
+
+
 def make_default_path(
     suffix
 ):
@@ -233,12 +265,14 @@ try:
         raise ValueError
 
 
-    start_year = int(
-        year_parts[0]
+    start_year, start_month = parse_year_month(
+        year_parts[0],
+        1
     )
 
-    end_year = int(
-        year_parts[1]
+    end_year, end_month = parse_year_month(
+        year_parts[1],
+        12
     )
 
 
@@ -246,31 +280,51 @@ except Exception as exc:
 
     raise ValueError(
         "forcing_raw_time must have format:\n"
-        "START_YEAR,END_YEAR\n\n"
-        "Example:\n"
-        "1950,2019"
+        "START,END where each is YYYY or YYYY-MM\n\n"
+        "Examples:\n"
+        "1950,2019  (January 1950 - December 2019)\n"
+        "1950-03,2019-11  (March 1950 - November 2019)"
     ) from exc
 
 
-if start_year > end_year:
+if not (
+    1 <= start_month <= 12
+    and 1 <= end_month <= 12
+):
+
+    raise ValueError(
+        "Invalid month in forcing_raw_time:\n"
+        f"{forcing_raw_time}"
+    )
+
+
+if (start_year, start_month) > (end_year, end_month):
 
     raise ValueError(
         "Invalid forcing_raw_time:\n"
-        f"{start_year},{end_year}"
+        f"{forcing_raw_time}"
     )
 
+
+# First hour of the first forcing month and last hour of the
+# last day of the last forcing month.
 
 if sim_start == "default":
 
     sim_start = (
-        f"{start_year}-10-01 00:00"
+        f"{start_year}-{start_month:02d}-01 00:00"
     )
 
 
 if sim_end == "default":
 
+    last_day = calendar.monthrange(
+        end_year,
+        end_month
+    )[1]
+
     sim_end = (
-        f"{end_year}-09-30 23:00"
+        f"{end_year}-{end_month:02d}-{last_day:02d} 00:00"
     )
 
 

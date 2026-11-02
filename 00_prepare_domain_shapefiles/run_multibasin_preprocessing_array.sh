@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=nwam_preprocess
-#SBATCH --time=00:30:00
+#SBATCH --time=04:00:00
 #SBATCH --mem=4G
 #SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/preprocess_%A_%a.out

@@ -6,7 +6,7 @@
 # Modeling domain settings
 # =====================================================================
 
-root_path                   | /home/zhentao/scratch/NAHM/NA_data
+root_path                   | /home/zhentao/scratch/NAHM/NA_data_MSWX
 domain_name                         | MERIT_76
 
 
@@ -59,10 +59,12 @@ river_basin_needs_remap             | no
 # =====================================================================
 
 
-install_path_summa          | /home/zhentao/projects/rrg-h294liu/zhentao/CWARHM/CWARHM_data/installs/summa
+# install_path_summa          | /home/zhentao/projects/rrg-h294liu/zhentao/CWARHM/CWARHM_data/installs/summa
+install_path_summa          | /home/zhentao/projects/rrg-h294liu/zhentao/modelPackage/summa
 install_path_mizuroute      | /home/zhentao/projects/rrg-h294liu/zhentao/CWARHM/CWARHM_data/installs/mizuRoute
 
-exe_name_summa              | summa.exe
+# exe_name_summa              | summa.exe
+exe_name_summa              | summa_sundials_mpi.exe
 exe_name_mizuroute          | route_runoff.exe
 
 
@@ -71,12 +73,12 @@ exe_name_mizuroute          | route_runoff.exe
 # =====================================================================
 
 # Shared forcing archive coverage.
-forcing_raw_time            | 2017,2019
+forcing_raw_time            | 1979-10,2026-09
 
 # LAT_MAX/LON_MIN/LAT_MIN/LON_MAX
-forcing_raw_space            | 26.862917/-84.999583/15.235417/-61.160417
+forcing_raw_space                   | 27.062917/-85.199583/15.035417/-60.960417
 
-forcing_time_step_size      | 3600
+forcing_time_step_size      | 86400
 forcing_measurement_height  | 3
 
 # Shared ARC forcing archives.
@@ -87,6 +89,27 @@ forcing_emearth_path        | /home/zhentao/projects/rrg-h294liu/data/meteorolog
 # Downstream SUMMA variable remains pptrate.
 forcing_emearth_precip              | prcp_corrected
 forcing_era5_path           | /home/zhentao/projects/rrg-h294liu/data/meteorological-data/era5/2_merged_data
+
+#####Changed######## 
+forcing_prcp_path           | /home/zhentao/scratch/data/temp/MSWEP/Past/Monthly
+forcing_tmean_path          | /home/zhentao/scratch/data/temp/MSWX/Temp/Past/Monthly
+forcing_prcp_var            | precipitation
+forcing_prcp_units          | mm/day
+forcing_tmean_var           | air_temperature
+forcing_tmean_units         | degC
+
+forcing_airpres_path   | /home/zhentao/scratch/data/temp/MSWX/Pres/Past/Monthly
+forcing_airpres_var    | surface_pressure 
+forcing_LWRadAtm_path  | /home/zhentao/scratch/data/temp/MSWX/LWd/Past/Monthly
+forcing_LWRadAtm_var   | downward_longwave_radiation
+forcing_SWRadAtm_path  | /home/zhentao/scratch/data/temp/MSWX/SWd/Past/Monthly
+forcing_SWRadAtm_var   | downward_shortwave_radiation
+forcing_spechum_path   | /home/zhentao/scratch/data/temp/MSWX/SpecHum/Past/Monthly
+forcing_spechum_var    | specific_humidity
+forcing_windspd_path   | /home/zhentao/scratch/data/temp/MSWX/Wind/Past/Monthly
+forcing_windspd_var    | wind_speed
+
+#############
 
 # Forcing-grid shapefiles used for EASYMORE.
 forcing_shape_path          | default
@@ -214,6 +237,8 @@ settings_summa_attributes   | attributes.nc
 
 settings_summa_connect_HRUs | no
 
+# Calibrated params file path, the script read all files under the path and
+# copy them to trailParam.nc
 
 calib_params_file_path      | /home/zhentao/projects/rrg-h294liu/zhentao/global_param/global_param_nc
 
@@ -227,17 +252,23 @@ settings_summa_trialParam_1 | maxstep,900
 
 settings_mizu_path          | default
 
-settings_mizu_parameters    | param.nml.default
+# settings_mizu_parameters    | param.nml.default
+settings_mizu_parameters    | mizuroute.param
 settings_mizu_topology      | topology.nc
 settings_mizu_remap         | routing_remap.nc
-settings_mizu_control_file  | mizuroute.control
+settings_mizu_control_file  | mizu_control.toml
+# settings_mizu_control_file  | mizuroute.control
 
 settings_mizu_routing_var   | averageRoutedRunoff
 settings_mizu_routing_units | m/s
-settings_mizu_routing_dt    | 3600
+settings_mizu_routing_dt    | 86400
 
 settings_mizu_output_freq   | yearly
-settings_mizu_output_vars   | 2
+
+# settings_mizu_output_vars
+# # 0: Sum; 1: IRF; 2: KWT; 3: KW; 4: MC; 5: DW
+
+settings_mizu_output_vars   | 5
 settings_mizu_within_basin  | 0
 
 # IMPORTANT:

@@ -13,6 +13,9 @@ slurm_logs/
 **/slurm_logs/
 slurm-*.out
 slurm-*.err
+*.out
+*.err
+
 
 # Temporary processing
 temp/

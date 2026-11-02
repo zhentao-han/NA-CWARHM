@@ -1,8 +1,9 @@
-export SLURM_ACCOUNT=def-h294liu_cpu
+export SLURM_ACCOUNT=rrg-h294liu_cpu
+export SLURM_ACCOUNT_DEF=def-h294liu_cpu
 
 export CWARHM="/home/zhentao/scratch/NAHM/NA-CWARHM"
 export REPO_ROOT="${CWARHM}"    ##"/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
-export DATA_ROOT="/home/zhentao/scratch/NAHM/NA_data"
+export DATA_ROOT="/home/zhentao/scratch/NAHM/NA_data_MSWX"
 export CONTROL_DIR="${REPO_ROOT}/0_control_files"
 
 export INVENTORY="$CONTROL_DIR/MERIT_level2_control_file_inputs.csv" ## <DOMAIN_INVENTORY>.csv
@@ -16,7 +17,7 @@ export MONTH_TASK="$CONTROL_DIR/month_tasks_${BATCH_NAME}.txt"      ##"/home/zhe
 export NBASIN=$(wc -l < "$BASIN_TASK")
 export NMONTH=$(wc -l < "$MONTH_TASK")
 
-export CHUNK_SIZE=6
+export CHUNK_SIZE=500
 N=$(wc -l < $MONTH_TASK)
 NJOBS=$(( (N + CHUNK_SIZE - 1) / CHUNK_SIZE ))
 

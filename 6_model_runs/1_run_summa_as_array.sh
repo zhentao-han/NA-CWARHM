@@ -69,6 +69,9 @@ SUMMA_EXE="$(read_control exe_name_summa)"
 SETTINGS_PATH="$(read_control settings_summa_path)"
 FILEMANAGER="$(read_control settings_summa_filemanager)"
 
+MIZU_SETTINGS_PATH="$(read_control settings_mizu_path)"
+MIZU_CONTROL_NAME="$(read_control settings_mizu_control_file)"
+
 OUTPUT_PATH="$(read_control experiment_output_summa)"
 LOG_PATH="$(read_control experiment_log_summa)"
 
@@ -87,6 +90,10 @@ if [ "$SETTINGS_PATH" = "default" ]; then
     SETTINGS_PATH="${ROOT_PATH}/domain_${DOMAIN_NAME}/settings/SUMMA"
 fi
 
+if [ "$MIZU_SETTINGS_PATH" = "default" ]; then
+    MIZU_SETTINGS_PATH="${ROOT_PATH}/domain_${DOMAIN_NAME}/settings/mizuRoute"
+fi
+
 if [ "$OUTPUT_PATH" = "default" ]; then
     OUTPUT_PATH="${ROOT_PATH}/domain_${DOMAIN_NAME}/simulations/${EXPERIMENT_ID}/SUMMA"
 fi
@@ -98,6 +105,7 @@ fi
 
 SUMMA_EXEC="${SUMMA_PATH}/bin/${SUMMA_EXE}"
 FILEMANAGER_PATH="${SETTINGS_PATH}/${FILEMANAGER}"
+CONTROL_TOML="${MIZU_SETTINGS_PATH}/${MIZU_CONTROL_NAME}"
 
 
 # ============================================================
@@ -139,40 +147,14 @@ fi
 
 GRU_START=$((SLURM_ARRAY_TASK_ID * GRUS_PER_TASK + 1))
 
-#GRU_START=$(
-#    (
-#        SLURM_ARRAY_TASK_ID
-#        * GRUS_PER_TASK
-#        + 1
-#    )
-#)
-
-
 GRU_COUNT="$GRUS_PER_TASK"
 
-
 GRU_END=$((GRU_START + GRU_COUNT - 1))
-
-
-#GRU_END=$(
-#    (
-#        GRU_START
-#        + GRU_COUNT
-#        - 1
-#    )
-#)
 
 
 if [ "$GRU_END" -gt "$TOTAL_GRUS" ]; then
 
     GRU_COUNT=$((TOTAL_GRUS - GRU_START + 1))
-    #GRU_COUNT=$(
-    #    (
-    #        TOTAL_GRUS
-    #        - GRU_START
-    #        + 1
-    #    )
-    #)
 
 fi
 
@@ -200,21 +182,6 @@ LOG_FILE="${LOG_PATH}/summa_G${GRU_START}_${GRU_COUNT}_${SLURM_ARRAY_TASK_ID}.tx
 # conda activate nwam_parallel
 
 
-#if [ "${CONDA_DEFAULT_ENV:-}" != "nwam_parallel" ]; then
-
-#    echo
-#    echo "ERROR: Failed to activate nwam_parallel."
-#    echo "Active environment: ${CONDA_DEFAULT_ENV:-none}"
-#
-#    exit 1
-#fi
-
-
-#export PATH="${CONDA_PREFIX}/bin:${PATH}"
-
-#export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
-
-
 # ============================================================
 # REQUIRED FILE CHECKS
 # ============================================================
@@ -234,6 +201,16 @@ if [ ! -f "$FILEMANAGER_PATH" ]; then
     echo
     echo "ERROR: SUMMA fileManager not found:"
     echo "$FILEMANAGER_PATH"
+
+    exit 1
+fi
+
+
+if [ ! -f "$CONTROL_TOML" ]; then
+
+    echo
+    echo "ERROR: SUMMA control TOML not found:"
+    echo "$CONTROL_TOML"
 
     exit 1
 fi
@@ -282,6 +259,7 @@ echo "GRU count    : $GRU_COUNT"
 echo "Total GRUs   : $TOTAL_GRUS"
 echo "Executable   : $SUMMA_EXEC"
 echo "FileManager  : $FILEMANAGER_PATH"
+echo "Control TOML : $CONTROL_TOML"
 echo "Output       : $OUTPUT_PATH"
 echo "Log          : $LOG_FILE"
 echo "Start        : $(date)"
@@ -298,6 +276,7 @@ set +e
 "$SUMMA_EXEC" \
     -g "$GRU_START" "$GRU_COUNT" \
     -m "$FILEMANAGER_PATH" \
+    -c "$CONTROL_TOML" \
     > "$LOG_FILE" 2>&1
 
 STATUS=$?

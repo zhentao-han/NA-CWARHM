@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=combine_forcing
-#SBATCH --time=02:00:00
+#SBATCH --time=10:00:00
 #SBATCH --mem=8G
 #SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/combine_forcing_%A_%a.out
@@ -93,7 +93,7 @@ fi
 
 TASK_FILE=$(realpath "$1")
 
-CHUNK_SIZE="${2:-6}"
+CHUNK_SIZE="${CHUNK_SIZE:-6}"
 
 
 # ============================================================

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=emearth_prep
-#SBATCH --time=01:00:00
+#SBATCH --time=10:00:00
 #SBATCH --mem=4G
 #SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/emearth_prep_%A_%a.out
@@ -74,7 +74,7 @@ fi
 
 TASK_FILE=$(realpath "$1")
 
-CHUNK_SIZE="${2:-6}"
+CHUNK_SIZE="${CHUNK_SIZE:-6}"
 
 
 # ============================================================

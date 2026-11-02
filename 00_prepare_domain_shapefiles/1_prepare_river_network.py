@@ -81,6 +81,8 @@ import numpy as np
 import pandas as pd
 
 
+from shapely.geometry import Point, LineString
+
 # ============================================================
 # INPUT CONTROL FILE
 # ============================================================
@@ -763,59 +765,72 @@ if self_loop_count > 0:
         .tolist()
     )
     
+    self_loop_indices = gdf.index[self_loop_mask]
     print()
-    print(
-        f"WARNING: Removing {self_loop_count} "
-        "self-loop segment(s)."
+    print(f"Found {self_loop_count} self-loop segment(s).")
+    
+    # 1. Set downstream ID to 0
+    gdf.loc[self_loop_mask, river_down_seg_id] = 0
+    down_ids.loc[self_loop_mask] = 0
+    
+    # 2. Set slope to 0.0001
+    gdf.loc[self_loop_mask, river_slope] = 0.0001
+    
+    # 3. Recalculate lengthkm from area
+    area_field = "uparea"
+    area = pd.to_numeric(
+        gdf.loc[self_loop_mask, area_field],
+        errors="raise"
+    )
+    # area is in km²; result is in km.
+    gdf.loc[self_loop_mask, river_length_source] = np.sqrt(
+        4.0 * area / np.pi
     )
 
-    print(
-        f"Self-loop segment IDs: {self_loop_ids}"
-    )
+    for idx in self_loop_indices:
+        geom = gdf.at[idx, gdf.geometry.name]
 
-    # Remove the corresponding features
-    gdf = gdf.loc[
-        ~self_loop_mask
-    ].copy()
+        if isinstance(geom, Point):
 
-    # Keep the normalized ID arrays consistent
-    segment_ids = segment_ids.loc[
-        ~self_loop_mask
-    ].copy()
+            lon, lat = geom.x, geom.y
+            
+            # Approximate longitude distance in km at this latitude.
+            km_per_degree_lon = 111.32 * np.cos(np.radians(lat))
+            
+            if km_per_degree_lon <= 0:
+                raise RuntimeError(
+                    f"Cannot construct a line at latitude {lat} "
+                    f"for segment {seg_id}."
+                )
+            
+            length_km = 0.001
 
-    down_ids = down_ids.loc[
-        ~self_loop_mask
-    ].copy()
+            half_delta_lon = (
+                length_km / km_per_degree_lon / 2.0
+            )
 
-    # Reset the GeoDataFrame index
-    gdf.reset_index(
-        drop=True,
-        inplace=True
-    )
+            # half_delta_lon = 0.001
 
-    segment_ids.reset_index(
-        drop=True,
-        inplace=True
-    )
+            gdf.at[idx, gdf.geometry.name] = LineString([
+                (lon - half_delta_lon, lat),
+                (lon + half_delta_lon, lat)
+            ])
 
-    down_ids.reset_index(
-        drop=True,
-        inplace=True
-    )
+            print(
+                f"  Segment {self_loop_ids}: Point -> LineString; "
+            )
+
+        else:
+            print(
+                f"  Segment {self_loop_ids}: attributes corrected; "
+                f"geometry type is {geom.geom_type}."
+            )
+
+    print("Self-loop corrections completed.")
 
 else:
+    print("No self-loop segments detected.")
 
-    print()
-    print(
-        "No self-loop segments detected."
-    )
-
-print(
-    f"River segments after self-loop removal : "
-    f"{len(gdf)}"
-)
- 
- 
 
 #    raise RuntimeError(
 #        "River network contains self-loop segment(s), "
@@ -848,6 +863,8 @@ if not np.all(
         slope_values
     )
 ):
+
+    print (f"Warning: {river_slope} contains non-finite values.")
 
     raise RuntimeError(
         f"{river_slope} contains non-finite values."

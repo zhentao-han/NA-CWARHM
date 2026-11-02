@@ -27,6 +27,14 @@ Outputs
 Each monthly row contains:
 
     control_file<TAB>year<TAB>month
+
+forcing_raw_time in each control file may be START,END where each end
+is YYYY or YYYY-MM, for example:
+
+    1950,2019          (Jan 1950 - Dec 2019)
+    1950-03,2019-11    (Mar 1950 - Nov 2019)
+
+Only months inside that range are written.
 """
 
 import argparse
@@ -225,6 +233,25 @@ def discover_distributed_controls():
 # FORCING PERIOD
 # ============================================================
 
+def parse_year_month(text, default_month):
+    """
+    Accept "YYYY" (month = default_month) or "YYYY-MM".
+    """
+
+    text = text.strip()
+
+    if "-" in text:
+
+        year_text, month_text = text.split(
+            "-",
+            1,
+        )
+
+        return int(year_text), int(month_text)
+
+    return int(text), default_month
+
+
 def read_forcing_period(
     control_file
 ):
@@ -245,33 +272,53 @@ def read_forcing_period(
         if len(parts) != 2:
             raise ValueError
 
-        start_year = int(
-            parts[0]
+        start_year, start_month = parse_year_month(
+            parts[0],
+            1,
         )
 
-        end_year = int(
-            parts[1]
+        end_year, end_month = parse_year_month(
+            parts[1],
+            12,
         )
 
     except Exception as exc:
 
         raise ValueError(
             "forcing_raw_time must use "
-            "'START_YEAR,END_YEAR' format in:\n"
+            "'START,END' format, where each is "
+            "YYYY or YYYY-MM (for example "
+            "1950,2019 or 1950-03,2019-11) in:\n"
             f"{control_file}"
         ) from exc
 
-    if start_year > end_year:
+    if not (
+        1 <= start_month <= 12
+        and 1 <= end_month <= 12
+    ):
+
+        raise ValueError(
+            f"Invalid month in forcing_raw_time in:\n"
+            f"{control_file}\n"
+            f"{forcing_raw_time}"
+        )
+
+    if (
+        (start_year, start_month)
+        > (end_year, end_month)
+    ):
 
         raise ValueError(
             f"Invalid forcing_raw_time in:\n"
             f"{control_file}\n"
-            f"{start_year},{end_year}"
+            f"{forcing_raw_time}"
         )
 
     return (
         start_year,
+        start_month,
         end_year,
+        end_month,
     )
 
 
@@ -449,7 +496,9 @@ def main():
 
         (
             start_year,
+            start_month,
             end_year,
+            end_month,
         ) = read_forcing_period(
             control_file
         )
@@ -466,6 +515,13 @@ def main():
                 13,
             ):
 
+                if not (
+                    (start_year, start_month)
+                    <= (year, month)
+                    <= (end_year, end_month)
+                ):
+                    continue
+
                 month_tasks.append(
                     (
                         str(
@@ -481,8 +537,8 @@ def main():
         domain_summary.append(
             (
                 domain,
-                start_year,
-                end_year,
+                f"{start_year}-{start_month:02d}",
+                f"{end_year}-{end_month:02d}",
                 domain_task_count,
             )
         )
@@ -555,7 +611,7 @@ def main():
 
         print(
             f"{domain:<15} "
-            f"{start_year}-{end_year}  "
+            f"{start_year} to {end_year}  "
             f"{task_count} monthly tasks"
         )
 

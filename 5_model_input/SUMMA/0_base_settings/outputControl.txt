@@ -4,33 +4,76 @@
 hruId
 latitude
 longitude     
-!
+
 ! -----------
-!  forcings
+! timestep vars
 ! -----------
-pptrate            | 1  
-airtemp            | 1  
-!
-!
-! -------------------
-!  model variables 
-! -------------------
-averageRoutedRunoff   | 1   
-scalarTotalET         | 24  
-scalarSWE             | 24  
-scalarRainPlusMelt    | 24  
-scalarCanopyWat       | 24  
-scalarTotalSoilWat    | 24  
-scalarAquiferStorage  | 24  
-scalarSurfaceRunoff   | 24  
-scalarInfiltration    | 24  
-scalarSoilDrainage    | 24  
-scalarSoilBaseflow    | 24
-scalarAquiferBaseflow | 24
-scalarTotalRunoff     | 24 
-scalarNetRadiation    | 24 
-scalarLatHeatTotal    | 24 
-scalarSenHeatTotal    | 24
+!hruId
+!latitude
+!longitude
 
+! -----------
+! timestep vars
+! -----------
+!nSnow                     | 1
+!nSoil                     | 1
 
+pptrate                   | 24
+airtemp                   | 24
 
+!scalarRainPlusMelt        | 1
+
+scalarSWE                 | 24
+
+!scalarInfiltration        | 1
+!scalarSurfaceRunoff       | 1
+!mLayerVolFracIce          | 1
+!mLayerVolFracLiq          | 1
+!mLayerMatricHead          | 1
+!basin__SurfaceRunoff      | 1
+!basin__ColumnOutflow      | 1
+!basin__AquiferStorage     | 1
+!basin__AquiferRecharge    | 1
+!basin__AquiferBaseflow    | 1
+!basin__AquiferTranspire   | 1
+!averageInstantRunoff      | 1
+
+averageRoutedRunoff       | 24
+
+!basin__TotalRunoff        | 1
+!scalarTotalET             | 1
+!scalarTotalSoilLiq        | 1
+!scalarTotalSoilIce        | 1
+
+scalarTotalSoilWat        | 24
+
+!scalarCanopyWat           | 1
+!scalarCanopySublimation   | 1
+!scalarGroundSublimation   | 1
+!scalarAquiferTranspire    | 1
+!scalarCanopyEvaporation   | 1
+!scalarSnowDrainage        | 1
+!iLayerHeight              | 1
+!mLayerTemp                | 1
+
+mLayerVolFracWat          | 24
+
+!scalarSnowDepth           | 1
+!scalarWindspdCanopyTop    | 1
+!scalarWindspdCanopyBottom | 1
+!scalarLeafResistance      | 1
+!scalarGroundResistance    | 1
+!scalarCanopyResistance    | 1
+!scalarSenHeatCanopy       | 1
+!scalarLatHeatCanopyEvap   | 1
+!scalarLatHeatCanopyTrans  | 1
+!scalarSenHeatGround       | 1
+!scalarLatHeatGround       | 1
+!scalarSenHeatTotal        | 1
+!scalarLatHeatTotal        | 1
+!scalarCanairTemp          | 1
+!scalarCanopyTemp          | 1
+!scalarSurfaceTemp         | 1
+!scalarAquiferBaseflow     | 1
+!scalarAquiferRecharge     | 1
+!scalarAquiferStorage      | 1

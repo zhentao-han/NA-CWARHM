@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=era5_prep
-#SBATCH --time=00:30:00
+#SBATCH --time=08:00:00
 #SBATCH --mem=4G
 #SBATCH --cpus-per-task=1
 #SBATCH --output=slurm_logs/era5_prep_%A_%a.out
@@ -80,8 +80,9 @@ fi
 
 TASK_FILE=$(realpath "$1")
 
-CHUNK_SIZE="${2:-6}"
+CHUNK_SIZE="${CHUNK_SIZE:-6}"
 
+echo ${CHUNK_SIZE}
 
 # ============================================================
 # VALIDATE INPUTS

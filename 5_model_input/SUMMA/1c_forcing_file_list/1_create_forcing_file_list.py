@@ -21,6 +21,11 @@
 # -----
 # python 1_create_forcing_file_list.py \
 # /path/to/control_DOMAIN.txt
+#
+# forcing_raw_time may be START,END where each end is YYYY or YYYY-MM:
+#
+#   forcing_raw_time | 1950,2019          (Jan 1950 - Dec 2019)
+#   forcing_raw_time | 1950-03,2019-11     (Mar 1950 - Nov 2019)
 
 import sys
 import re
@@ -131,12 +136,34 @@ def make_default_path(suffix):
     )
 
 
+def parse_year_month(text, default_month):
+    """
+    Accept "YYYY" (month = default_month) or "YYYY-MM".
+    """
+
+    text = text.strip()
+
+    if "-" in text:
+
+        year_text, month_text = text.split(
+            "-",
+            1
+        )
+
+        return int(year_text), int(month_text)
+
+    return int(text), default_month
+
+
 def month_sequence(
     start_year,
-    end_year
+    start_month,
+    end_year,
+    end_month
 ):
     """
-    Return YYYYMM strings for every month in the period.
+    Return YYYYMM strings for every month from
+    start_year/start_month through end_year/end_month inclusive.
     """
 
     months = []
@@ -150,6 +177,13 @@ def month_sequence(
             1,
             13
         ):
+
+            if not (
+                (start_year, start_month)
+                <= (year, month)
+                <= (end_year, end_month)
+            ):
+                continue
 
             months.append(
                 f"{year}{month:02d}"
@@ -260,35 +294,51 @@ try:
     if len(year_parts) != 2:
         raise ValueError
 
-    start_year = int(
-        year_parts[0]
+    start_year, start_month = parse_year_month(
+        year_parts[0],
+        1
     )
 
-    end_year = int(
-        year_parts[1]
+    end_year, end_month = parse_year_month(
+        year_parts[1],
+        12
     )
 
 except Exception as exc:
 
     raise ValueError(
         "forcing_raw_time must have format:\n"
-        "START_YEAR,END_YEAR\n\n"
-        "Example:\n"
-        "1950,2019"
+        "START,END where each is YYYY or YYYY-MM\n\n"
+        "Examples:\n"
+        "1950,2019  (January 1950 - December 2019)\n"
+        "1950-03,2019-11  (March 1950 - November 2019)"
     ) from exc
 
 
-if start_year > end_year:
+if not (
+    1 <= start_month <= 12
+    and 1 <= end_month <= 12
+):
+
+    raise ValueError(
+        "Invalid month in forcing_raw_time:\n"
+        f"{forcing_raw_time}"
+    )
+
+
+if (start_year, start_month) > (end_year, end_month):
 
     raise ValueError(
         "Invalid forcing_raw_time:\n"
-        f"{start_year},{end_year}"
+        f"{forcing_raw_time}"
     )
 
 
 expected_months = month_sequence(
     start_year,
-    end_year
+    start_month,
+    end_year,
+    end_month
 )
 
 
