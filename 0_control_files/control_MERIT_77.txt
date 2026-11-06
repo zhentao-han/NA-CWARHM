@@ -252,12 +252,12 @@ settings_summa_trialParam_1 | maxstep,900
 
 settings_mizu_path          | default
 
-# settings_mizu_parameters    | param.nml.default
-settings_mizu_parameters    | mizuroute.param
+settings_mizu_parameters    | param.nml.default
+# settings_mizu_parameters    | mizuroute.param
 settings_mizu_topology      | topology.nc
 settings_mizu_remap         | routing_remap.nc
-settings_mizu_control_file  | mizu_control.toml
-# settings_mizu_control_file  | mizuroute.control
+# settings_mizu_control_file  | mizu_control.toml
+settings_mizu_control_file  | mizuroute.control
 
 settings_mizu_routing_var   | averageRoutedRunoff
 settings_mizu_routing_units | m/s

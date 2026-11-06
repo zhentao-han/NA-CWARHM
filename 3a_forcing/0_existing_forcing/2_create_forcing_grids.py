@@ -168,7 +168,7 @@ eraShapeName = read_from_control(
 emearthPath = Path(
     read_from_control(
         controlPath,
-        "forcing_emearth_path"
+        "forcing_prcp_path"
     )
 )
 
@@ -176,7 +176,7 @@ emearthPath = Path(
 era5Path = Path(
     read_from_control(
         controlPath,
-        "forcing_era5_path"
+        "forcing_tmean_path"
     )
 )
 
@@ -230,10 +230,8 @@ emearthFiles = sorted(
 
     (
         emearthPath
-        / "prcp"
-        / "NorthAmerica"
     ).glob(
-        "EM_Earth_deterministic_hourly_NorthAmerica_*.nc"
+        "*.nc"
     )
 )
 
@@ -241,8 +239,8 @@ emearthFiles = sorted(
 if not emearthFiles:
 
     raise FileNotFoundError(
-        "No EM-Earth precipitation files found in:\n"
-        f"{emearthPath / 'prcp' / 'NorthAmerica'}"
+        "No MSWEP precipitation files found in:\n"
+        f"{emearthPath}"
     )
 
 
@@ -252,7 +250,7 @@ emFile = emearthFiles[0]
 era5Files = sorted(
 
     era5Path.glob(
-        "ERA5_merged_*.nc"
+        "*.nc"
     )
 )
 
@@ -260,7 +258,7 @@ era5Files = sorted(
 if not era5Files:
 
     raise FileNotFoundError(
-        "No ERA5_merged_*.nc files found in:\n"
+        "No MSWX *.nc files found in:\n"
         f"{era5Path}"
     )
 
@@ -366,8 +364,8 @@ def create_grid_shapefile(
     #
     # The buffers correspond to one nominal source-grid cell:
     #
-    # EM-Earth = 0.1 degree
-    # ERA5     = 0.25 degree
+    # MSWEP    = 0.1 degree
+    # MSWX     = 0.1 degree
 
     selected_lat = lat[
         (lat >= latMin - domain_buffer)
@@ -669,28 +667,28 @@ with xr.open_dataset(
     eraFile
 ) as ds:
 
-    if "latitude" not in ds:
+    if "lat" not in ds:
 
         raise RuntimeError(
-            f"'latitude' coordinate not found in:\n"
+            f"'lat' coordinate not found in:\n"
             f"{eraFile}"
         )
 
-    if "longitude" not in ds:
+    if "lon" not in ds:
 
         raise RuntimeError(
-            f"'longitude' coordinate not found in:\n"
+            f"'lon' coordinate not found in:\n"
             f"{eraFile}"
         )
 
 
     era_lat = (
-        ds["latitude"]
+        ds["lat"]
         .values
     )
 
     era_lon = (
-        ds["longitude"]
+        ds["lon"]
         .values
     )
 
@@ -700,7 +698,7 @@ create_grid_shapefile(
     era_lon,
     shapePath
     / eraShapeName,
-    domain_buffer=0.25
+    domain_buffer=0.1
 )
 
 

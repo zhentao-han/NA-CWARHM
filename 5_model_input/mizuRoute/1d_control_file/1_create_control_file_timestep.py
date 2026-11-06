@@ -31,10 +31,26 @@ Usage
 -----
 python 1_create_control_file.py \
 /path/to/control_DOMAIN.txt
+
+Simulation period
+-----------------
+experiment_time_start / experiment_time_end are used when given.
+When they are "default", the period is derived from forcing_raw_time,
+whose two ends may each be YYYY or YYYY-MM:
+
+    forcing_raw_time | 1950,2019
+        -> 1950-10-01 00:00 to 2019-09-30 23:00  (water year)
+
+    forcing_raw_time | 1950-03,2019-11
+        -> 1950-03-01 00:00 to 2019-11-30 23:00
+
+    forcing_raw_time | 1950-03,2019
+        -> 1950-03-01 00:00 to 2019-09-30 23:00  (each end independent)
 """
 
 
 import sys
+import calendar
 from pathlib import Path
 from shutil import copy2
 from datetime import datetime
@@ -148,6 +164,29 @@ def read_from_control(
         f"Setting '{setting}' not found in:\n"
         f"{file}"
     )
+
+
+def parse_year_month(
+    text
+):
+    """
+    Accept "YYYY" or "YYYY-MM".
+
+    Returns (year, month); month is None when only a year is given.
+    """
+
+    text = text.strip()
+
+    if "-" in text:
+
+        year_text, month_text = text.split(
+            "-",
+            1
+        )
+
+        return int(year_text), int(month_text)
+
+    return int(text), None
 
 
 def make_default_path(
@@ -386,7 +425,7 @@ forcing_raw_time = read_from_control(
 
 try:
 
-    start_year_text, end_year_text = [
+    start_text, end_text = [
         item.strip()
         for item in forcing_raw_time.split(
             ",",
@@ -394,44 +433,100 @@ try:
         )
     ]
 
-    start_year = int(
-        start_year_text
+    start_year, start_month = parse_year_month(
+        start_text
     )
 
-    end_year = int(
-        end_year_text
+    end_year, end_month = parse_year_month(
+        end_text
     )
 
 except Exception as exc:
 
     raise ValueError(
         "forcing_raw_time must have format:\n"
-        "START_YEAR,END_YEAR\n"
+        "START,END where each is YYYY or YYYY-MM\n"
         "for example:\n"
-        "1950,2019"
+        "1950,2019  (water-year defaults below)\n"
+        "1950-03,2019-11  (March 1950 - November 2019)"
     ) from exc
 
 
-if start_year > end_year:
+for month_value in (
+    start_month,
+    end_month
+):
+
+    if (
+        month_value is not None
+        and not 1 <= month_value <= 12
+    ):
+
+        raise ValueError(
+            "Invalid month in forcing_raw_time:\n"
+            f"{forcing_raw_time}"
+        )
+
+
+# Compare using the first month of a year-only start and the last
+# month of a year-only end.
+
+if (
+    (start_year, start_month or 1)
+    > (end_year, end_month or 12)
+):
 
     raise ValueError(
-        "forcing_raw_time start year is greater "
-        "than end year."
+        "forcing_raw_time start is after end:\n"
+        f"{forcing_raw_time}"
     )
 
+
+# Default simulation period
+# -------------------------
+# A bare year keeps the original water-year convention:
+#
+#   start year "YYYY"  -> YYYY-10-01 00:00
+#   end year   "YYYY"  -> YYYY-09-30 23:00
+#
+# A year with an explicit month ("YYYY-MM") uses that month:
+#
+#   start "YYYY-MM"    -> first hour of that month
+#   end   "YYYY-MM"    -> last hour of the last day of that month
 
 if sim_start == "default":
 
-    sim_start = (
-        f"{start_year}-10-01 00:00"
-    )
+    if start_month is None:
+
+        sim_start = (
+            f"{start_year}-10-01 00:00"
+        )
+
+    else:
+
+        sim_start = (
+            f"{start_year}-{start_month:02d}-01 00:00"
+        )
 
 
 if sim_end == "default":
 
-    sim_end = (
-        f"{end_year}-09-30 23:00"
-    )
+    if end_month is None:
+
+        sim_end = (
+            f"{end_year}-09-30 00:00"
+        )
+
+    else:
+
+        last_day = calendar.monthrange(
+            end_year,
+            end_month
+        )[1]
+
+        sim_end = (
+            f"{end_year}-{end_month:02d}-{last_day:02d} 00:00"
+        )
 
 
 try:

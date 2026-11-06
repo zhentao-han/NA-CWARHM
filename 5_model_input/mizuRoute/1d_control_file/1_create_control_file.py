@@ -2,19 +2,26 @@
 # coding: utf-8
 
 """
-Create mizuroute.control (TOML format) for a selected NWAM/CWARHM domain.
+Create mizuroute.control for a selected NWAM/CWARHM domain.
 
 Purpose
 -------
 Create the mizuRoute runtime control file using an explicitly
 specified domain control file.
 
-The generated control has three sections:
+The generated control defines:
 
-  [mizuRoute]   routing parameter namelist, routing method, time step,
-                output switches
-  [simulation]  simulation switches
-  [hydrofabric] topology file and variable names
+  - ancillary/settings directory
+  - SUMMA runoff input directory
+  - mizuRoute output directory
+  - routing parameter namelist
+  - simulation period
+  - routing option
+  - topology file and variable names
+  - SUMMA runoff file and variable names
+  - optional SUMMA-to-mizuRoute remapping
+  - within-basin routing
+  - NetCDF/PIO output configuration
 
 IMPORTANT
 ---------
@@ -24,10 +31,26 @@ Usage
 -----
 python 1_create_control_file.py \
 /path/to/control_DOMAIN.txt
+
+Simulation period
+-----------------
+experiment_time_start / experiment_time_end are used when given.
+When they are "default", the period is derived from forcing_raw_time,
+whose two ends may each be YYYY or YYYY-MM:
+
+    forcing_raw_time | 1950,2019
+        -> 1950-10-01 00:00 to 2019-09-30 23:00  (water year)
+
+    forcing_raw_time | 1950-03,2019-11
+        -> 1950-03-01 00:00 to 2019-11-30 23:00
+
+    forcing_raw_time | 1950-03,2019
+        -> 1950-03-01 00:00 to 2019-09-30 23:00  (each end independent)
 """
 
 
 import sys
+import calendar
 from pathlib import Path
 from shutil import copy2
 from datetime import datetime
@@ -143,6 +166,29 @@ def read_from_control(
     )
 
 
+def parse_year_month(
+    text
+):
+    """
+    Accept "YYYY" or "YYYY-MM".
+
+    Returns (year, month); month is None when only a year is given.
+    """
+
+    text = text.strip()
+
+    if "-" in text:
+
+        year_text, month_text = text.split(
+            "-",
+            1
+        )
+
+        return int(year_text), int(month_text)
+
+    return int(text), None
+
+
 def make_default_path(
     suffix
 ):
@@ -239,10 +285,70 @@ control_output = (
 
 
 # mizuRoute ancillary directory.
-# Used for both namelist_path and hfabric_path.
 
 path_to_settings = (
     control_path
+)
+
+
+# ============================================================
+# SUMMA OUTPUT / MIZUROUTE INPUT DIRECTORY
+# ============================================================
+
+summa_output_setting = read_from_control(
+    CONTROL_FILE,
+    "experiment_output_summa"
+)
+
+
+if summa_output_setting == "default":
+
+    path_to_input = make_default_path(
+        f"simulations/{experiment_id}/SUMMA"
+    )
+
+else:
+
+    path_to_input = Path(
+        summa_output_setting
+    )
+
+
+# SUMMA output may not exist yet at Stage 5, so creating the
+# directory is appropriate.
+
+path_to_input.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+
+# ============================================================
+# MIZUROUTE OUTPUT DIRECTORY
+# ============================================================
+
+mizu_output_setting = read_from_control(
+    CONTROL_FILE,
+    "experiment_output_mizuRoute"
+)
+
+
+if mizu_output_setting == "default":
+
+    path_to_output = make_default_path(
+        f"simulations/{experiment_id}/mizuRoute"
+    )
+
+else:
+
+    path_to_output = Path(
+        mizu_output_setting
+    )
+
+
+path_to_output.mkdir(
+    parents=True,
+    exist_ok=True
 )
 
 
@@ -271,6 +377,186 @@ if not parameter_file.exists():
     )
 
 
+# ------------------------------------------------------------
+# Stage parameter file in SUMMA-output/input directory
+# ------------------------------------------------------------
+#
+# Current mizuRoute configuration uses:
+#
+#   <input_dir> .../SUMMA/
+#   <param_nml> param.nml.default
+#
+# so retain the tested workflow behavior and copy the namelist
+# there as well.
+
+parameter_input_file = (
+    path_to_input
+    / parameter_name
+)
+
+
+copy2(
+    parameter_file,
+    parameter_input_file
+)
+
+
+# ============================================================
+# SIMULATION PERIOD
+# ============================================================
+
+sim_start = read_from_control(
+    CONTROL_FILE,
+    "experiment_time_start"
+)
+
+
+sim_end = read_from_control(
+    CONTROL_FILE,
+    "experiment_time_end"
+)
+
+
+forcing_raw_time = read_from_control(
+    CONTROL_FILE,
+    "forcing_raw_time"
+)
+
+
+try:
+
+    start_text, end_text = [
+        item.strip()
+        for item in forcing_raw_time.split(
+            ",",
+            1
+        )
+    ]
+
+    start_year, start_month = parse_year_month(
+        start_text
+    )
+
+    end_year, end_month = parse_year_month(
+        end_text
+    )
+
+except Exception as exc:
+
+    raise ValueError(
+        "forcing_raw_time must have format:\n"
+        "START,END where each is YYYY or YYYY-MM\n"
+        "for example:\n"
+        "1950,2019  (water-year defaults below)\n"
+        "1950-03,2019-11  (March 1950 - November 2019)"
+    ) from exc
+
+
+for month_value in (
+    start_month,
+    end_month
+):
+
+    if (
+        month_value is not None
+        and not 1 <= month_value <= 12
+    ):
+
+        raise ValueError(
+            "Invalid month in forcing_raw_time:\n"
+            f"{forcing_raw_time}"
+        )
+
+
+# Compare using the first month of a year-only start and the last
+# month of a year-only end.
+
+if (
+    (start_year, start_month or 1)
+    > (end_year, end_month or 12)
+):
+
+    raise ValueError(
+        "forcing_raw_time start is after end:\n"
+        f"{forcing_raw_time}"
+    )
+
+
+# Default simulation period
+# -------------------------
+# A bare year keeps the original water-year convention:
+#
+#   start year "YYYY"  -> YYYY-10-01 00:00
+#   end year   "YYYY"  -> YYYY-09-30 23:00
+#
+# A year with an explicit month ("YYYY-MM") uses that month:
+#
+#   start "YYYY-MM"    -> first hour of that month
+#   end   "YYYY-MM"    -> last hour of the last day of that month
+
+if sim_start == "default":
+
+    if start_month is None:
+
+        sim_start = (
+            f"{start_year}-10-01 00:00"
+        )
+
+    else:
+
+        sim_start = (
+            f"{start_year}-{start_month:02d}-01 00:00"
+        )
+
+
+if sim_end == "default":
+
+    if end_month is None:
+
+        sim_end = (
+            f"{end_year}-09-30 00:00"
+        )
+
+    else:
+
+        last_day = calendar.monthrange(
+            end_year,
+            end_month
+        )[1]
+
+        sim_end = (
+            f"{end_year}-{end_month:02d}-{last_day:02d} 00:00"
+        )
+
+
+try:
+
+    start_datetime = datetime.strptime(
+        sim_start,
+        "%Y-%m-%d %H:%M"
+    )
+
+    end_datetime = datetime.strptime(
+        sim_end,
+        "%Y-%m-%d %H:%M"
+    )
+
+except ValueError as exc:
+
+    raise ValueError(
+        "experiment_time_start and "
+        "experiment_time_end must use:\n"
+        "YYYY-MM-DD HH:MM"
+    ) from exc
+
+
+if end_datetime < start_datetime:
+
+    raise RuntimeError(
+        "Simulation end occurs before simulation start."
+    )
+
+
 # ============================================================
 # TOPOLOGY FILE
 # ============================================================
@@ -296,11 +582,6 @@ if not topology_file.exists():
     )
 
 
-# Output topology file written by mizuRoute.
-
-topology_new_name = "topology_new.nc"
-
-
 # Names generated by topology.nc.
 
 topology_seg_dim = "seg"
@@ -319,11 +600,157 @@ topology_var_down_seg_id = "downSegId"
 
 # Negative value means use the complete supplied topology.
 
-topology_outlet = -9999
+topology_outlet = "-9999"
 
 
 # ============================================================
-# ROUTING METHOD
+# OPTIONAL SUMMA -> MIZUROUTE REMAPPING
+# ============================================================
+
+remap_flag = read_from_control(
+    CONTROL_FILE,
+    "river_basin_needs_remap"
+).strip().lower()
+
+
+if remap_flag not in {
+    "yes",
+    "no",
+}:
+
+    raise ValueError(
+        "river_basin_needs_remap must be "
+        "'yes' or 'no'."
+    )
+
+
+if remap_flag == "yes":
+
+    do_remap = "T"
+
+    remap_name = read_from_control(
+        CONTROL_FILE,
+        "settings_mizu_remap"
+    )
+
+    remap_file = (
+        path_to_settings
+        / remap_name
+    )
+
+    if not remap_file.exists():
+
+        raise FileNotFoundError(
+            "river_basin_needs_remap = yes, "
+            "but routing remapping file was not found:\n"
+            f"{remap_file}"
+        )
+
+
+    # Variables generated by optional remapping script.
+
+    remap_var_rn_hru = "RN_hruId"
+    remap_var_weight = "weight"
+    remap_var_hm_gru = "HM_hruId"
+    remap_var_overlap = "nOverlaps"
+
+    remap_dim_hru = "hru"
+    remap_dim_data = "data"
+
+
+else:
+
+    do_remap = "F"
+
+    remap_name = None
+    remap_file = None
+
+
+# ============================================================
+# SUMMA RUNOFF INPUT
+# ============================================================
+
+# Stage 6 merges SUMMA output into:
+#
+#   <experiment_id>_day.nc
+#
+# Example:
+#
+#   run1_day.nc
+
+routing_nc = (
+    f"{experiment_id}_day.nc"
+)
+
+
+routing_var_flow = read_from_control(
+    CONTROL_FILE,
+    "settings_mizu_routing_var"
+)
+
+
+routing_var_flow_units = read_from_control(
+    CONTROL_FILE,
+    "settings_mizu_routing_units"
+)
+
+
+routing_dt_text = read_from_control(
+    CONTROL_FILE,
+    "settings_mizu_routing_dt"
+)
+
+
+try:
+
+    routing_dt_value = float(
+        routing_dt_text
+    )
+
+except ValueError as exc:
+
+    raise ValueError(
+        "settings_mizu_routing_dt must be numeric."
+    ) from exc
+
+
+if routing_dt_value <= 0:
+
+    raise ValueError(
+        "settings_mizu_routing_dt must be > 0."
+    )
+
+
+# Use integer text where possible.
+
+if routing_dt_value.is_integer():
+
+    routing_dt = str(
+        int(
+            routing_dt_value
+        )
+    )
+
+else:
+
+    routing_dt = str(
+        routing_dt_value
+    )
+
+
+# Standard merged SUMMA dimensions.
+
+routing_dim_time = "time"
+routing_var_time = "time"
+
+routing_dim_id = "gru"
+routing_var_id = "gruId"
+
+routing_calendar = "standard"
+
+
+# ============================================================
+# ROUTING OPTION
 # ============================================================
 
 # Historical CWARHM control key:
@@ -378,60 +805,74 @@ if route_opt not in valid_route_options:
 
 
 # ============================================================
-# ROUTING TIME STEP
+# OUTPUT FREQUENCY
 # ============================================================
 
-routing_dt_text = read_from_control(
+output_frequency = read_from_control(
     CONTROL_FILE,
-    "settings_mizu_routing_dt"
+    "settings_mizu_output_freq"
+).strip().lower()
+
+
+valid_output_frequencies = {
+    "single",
+    "daily",
+    "monthly",
+    "yearly",
+}
+
+
+if output_frequency not in valid_output_frequencies:
+
+    raise ValueError(
+        "settings_mizu_output_freq must be one of:\n"
+        "single, daily, monthly, yearly"
+    )
+
+
+# ============================================================
+# WITHIN-BASIN ROUTING
+# ============================================================
+
+within_basin_text = read_from_control(
+    CONTROL_FILE,
+    "settings_mizu_within_basin"
 )
 
 
 try:
 
-    routing_dt_value = float(
-        routing_dt_text
+    within_basin = int(
+        within_basin_text
     )
 
 except ValueError as exc:
 
     raise ValueError(
-        "settings_mizu_routing_dt must be numeric."
+        "settings_mizu_within_basin must be 0 or 1."
     ) from exc
 
 
-if routing_dt_value <= 0:
+if within_basin not in {
+    0,
+    1,
+}:
 
     raise ValueError(
-        "settings_mizu_routing_dt must be > 0."
-    )
-
-
-# Use integer text where possible.
-
-if routing_dt_value.is_integer():
-
-    routing_dt = str(
-        int(
-            routing_dt_value
-        )
-    )
-
-else:
-
-    routing_dt = str(
-        routing_dt_value
+        "settings_mizu_within_basin must be:\n"
+        "0 = no within-basin routing\n"
+        "1 = IRF within-basin routing"
     )
 
 
 # ============================================================
-# OUTPUT SWITCHES / SIMULATION SWITCHES
+# PIO / NETCDF SETTINGS
 # ============================================================
 
-write_qbasin = "false"
-write_qreach = "false"
+# Current tested NWAM configuration.
 
-use_mizuroute = "false"
+pio_netcdf_type = "pnetcdf"
+pio_netcdf_format = "64bit_offset"
 
 
 # ============================================================
@@ -456,11 +897,23 @@ print(
 )
 
 print(
+    f"Simulation start : {sim_start}"
+)
+
+print(
+    f"Simulation end   : {sim_end}"
+)
+
+print(
     f"Settings path    : {path_to_settings}"
 )
 
 print(
-    f"Parameters       : {parameter_file}"
+    f"SUMMA input      : {path_to_input}"
+)
+
+print(
+    f"mizuRoute output : {path_to_output}"
 )
 
 print(
@@ -468,11 +921,19 @@ print(
 )
 
 print(
-    f"Topology (new)   : {topology_new_name}"
+    f"Parameters       : {parameter_file}"
 )
 
 print(
-    f"Route option     : {route_opt}"
+    f"Parameter staged : {parameter_input_file}"
+)
+
+print(
+    f"SUMMA runoff     : {routing_nc}"
+)
+
+print(
+    f"Runoff variable  : {routing_var_flow}"
 )
 
 print(
@@ -480,11 +941,27 @@ print(
 )
 
 print(
-    f"write_qbasin     : {write_qbasin}"
+    f"Route option     : {route_opt}"
 )
 
 print(
-    f"write_Qreach     : {write_qreach}"
+    f"Within basin     : {within_basin}"
+)
+
+print(
+    f"Remapping        : {do_remap}"
+)
+
+print(
+    f"Output frequency : {output_frequency}"
+)
+
+print(
+    f"PIO type         : {pio_netcdf_type}"
+)
+
+print(
+    f"PIO format       : {pio_netcdf_format}"
 )
 
 print(
@@ -496,52 +973,251 @@ print(
 # BUILD CONTROL FILE
 # ============================================================
 
-# String values are quoted, numbers and booleans are not.
+control_lines = []
 
-settings_dir_text = (
-    f"{path_to_settings.as_posix()}/"
+
+# ------------------------------------------------------------
+# Header
+# ------------------------------------------------------------
+
+control_lines.append(
+    "! mizuRoute control file generated by NWAM/CWARHM"
 )
 
 
-control_lines = [
+# ------------------------------------------------------------
+# Directories
+# ------------------------------------------------------------
 
-    "[mizuRoute]",
-    "",
-    f'namelist_path = "{settings_dir_text}"',
-    f'namelist_file = "{parameter_name}"',
-    "",
-    f'methods = "{route_opt}"',
-    "",
-    f"dt = {routing_dt}",
-    "",
-    f"write_qbasin = {write_qbasin}",
-    f"write_Qreach = {write_qreach}",
-    "",
-    "[simulation]",
-    "",
-    f"use_mizuroute    = {use_mizuroute}",
-    "# write_timeseries = true",
-    "",
-    "[hydrofabric]",
-    "",
-    f'hfabric_path    = "{settings_dir_text}"',
-    f'hfabric_file    = "{topology_name}"',
-    f'hfabric_newfile = "{topology_new_name}"',
-    "",
-    f'dname_seg = "{topology_seg_dim}"',
-    f'dname_hru = "{topology_hru_dim}"',
-    "",
-    f'varname_HRUid     = "{topology_var_hru_id}"',
-    f'varname_segId     = "{topology_var_seg_id}"',
-    f'varname_hruSegId  = "{topology_var_hru_to_seg}"',
-    f'varname_downSegId = "{topology_var_down_seg_id}"',
-    "",
-    f'varname_area   = "{topology_var_area}"',
-    f'varname_slope  = "{topology_var_slope}"',
-    f'varname_length = "{topology_var_length}"',
-    "",
-    f"seg_outlet = {topology_outlet}",
-]
+control_lines.append(
+    "! --- DEFINE DIRECTORIES"
+)
+
+control_lines.append(
+    f"<ancil_dir> {path_to_settings}/ ! ancillary/topology files"
+)
+
+control_lines.append(
+    f"<input_dir> {path_to_input}/ ! SUMMA runoff input"
+)
+
+control_lines.append(
+    f"<output_dir> {path_to_output}/ ! mizuRoute output"
+)
+
+
+# ------------------------------------------------------------
+# Parameter file
+# ------------------------------------------------------------
+
+control_lines.append(
+    "! --- NAMELIST FILENAME"
+)
+
+control_lines.append(
+    f"<param_nml> {parameter_name} ! routing parameter namelist"
+)
+
+
+# ------------------------------------------------------------
+# Simulation
+# ------------------------------------------------------------
+
+control_lines.append(
+    "! --- DEFINE SIMULATION CONTROLS"
+)
+
+control_lines.append(
+    f"<case_name> {experiment_id} !"
+)
+
+control_lines.append(
+    f"<sim_start> {sim_start} !"
+)
+
+control_lines.append(
+    f"<sim_end> {sim_end} !"
+)
+
+control_lines.append(
+    f"<route_opt> {route_opt} !"
+)
+
+control_lines.append(
+    f"<newFileFrequency> {output_frequency} !"
+)
+
+
+# ------------------------------------------------------------
+# Topology
+# ------------------------------------------------------------
+
+control_lines.append(
+    "! --- DEFINE TOPOLOGY FILE"
+)
+
+control_lines.append(
+    f"<fname_ntopOld> {topology_name} !"
+)
+
+control_lines.append(
+    f"<dname_sseg> {topology_seg_dim} !"
+)
+
+control_lines.append(
+    f"<dname_nhru> {topology_hru_dim} !"
+)
+
+control_lines.append(
+    f"<seg_outlet> {topology_outlet} !"
+)
+
+control_lines.append(
+    f"<varname_area> {topology_var_area} !"
+)
+
+control_lines.append(
+    f"<varname_length> {topology_var_length} !"
+)
+
+control_lines.append(
+    f"<varname_slope> {topology_var_slope} !"
+)
+
+control_lines.append(
+    f"<varname_HRUid> {topology_var_hru_id} !"
+)
+
+control_lines.append(
+    f"<varname_hruSegId> {topology_var_hru_to_seg} !"
+)
+
+control_lines.append(
+    f"<varname_segId> {topology_var_seg_id} !"
+)
+
+control_lines.append(
+    f"<varname_downSegId> {topology_var_down_seg_id} !"
+)
+
+
+# ------------------------------------------------------------
+# SUMMA runoff
+# ------------------------------------------------------------
+
+control_lines.append(
+    "! --- DEFINE RUNOFF FILE"
+)
+
+control_lines.append(
+    f"<fname_qsim> {routing_nc} !"
+)
+
+control_lines.append(
+    f"<vname_qsim> {routing_var_flow} !"
+)
+
+control_lines.append(
+    f"<units_qsim> {routing_var_flow_units} !"
+)
+
+control_lines.append(
+    f"<dt_qsim> {routing_dt} !"
+)
+
+control_lines.append(
+    f"<dname_time> {routing_dim_time} !"
+)
+
+control_lines.append(
+    f"<vname_time> {routing_var_time} !"
+)
+
+control_lines.append(
+    f"<dname_hruid> {routing_dim_id} !"
+)
+
+control_lines.append(
+    f"<vname_hruid> {routing_var_id} !"
+)
+
+control_lines.append(
+    f"<ro_calendar> {routing_calendar} !"
+)
+
+
+# ------------------------------------------------------------
+# Optional remapping
+# ------------------------------------------------------------
+
+control_lines.append(
+    "! --- DEFINE RUNOFF MAPPING FILE"
+)
+
+control_lines.append(
+    f"<is_remap> {do_remap} !"
+)
+
+
+if remap_flag == "yes":
+
+    control_lines.append(
+        f"<fname_remap> {remap_name} !"
+    )
+
+    control_lines.append(
+        f"<vname_hruid_in_remap> {remap_var_rn_hru} !"
+    )
+
+    control_lines.append(
+        f"<vname_weight> {remap_var_weight} !"
+    )
+
+    control_lines.append(
+        f"<vname_qhruid> {remap_var_hm_gru} !"
+    )
+
+    control_lines.append(
+        f"<vname_num_qhru> {remap_var_overlap} !"
+    )
+
+    control_lines.append(
+        f"<dname_hru_remap> {remap_dim_hru} !"
+    )
+
+    control_lines.append(
+        f"<dname_data_remap> {remap_dim_data} !"
+    )
+
+
+# ------------------------------------------------------------
+# NetCDF / PIO
+# ------------------------------------------------------------
+
+control_lines.append(
+    "! --- OUTPUT I/O"
+)
+
+control_lines.append(
+    f"<pio_netcdf_type> {pio_netcdf_type} !"
+)
+
+control_lines.append(
+    f"<pio_netcdf_format> {pio_netcdf_format} !"
+)
+
+
+# ------------------------------------------------------------
+# Miscellaneous
+# ------------------------------------------------------------
+
+control_lines.append(
+    "! --- MISCELLANEOUS"
+)
+
+control_lines.append(
+    f"<doesBasinRoute> {within_basin} !"
+)
 
 
 # ============================================================
@@ -574,77 +1250,118 @@ generated_lines = (
 )
 
 
+# ------------------------------------------------------------
+# Blank-line check
+# ------------------------------------------------------------
+
+blank_lines = [
+    index + 1
+    for index, line in enumerate(
+        generated_lines
+    )
+    if not line.strip()
+]
+
+
+if blank_lines:
+
+    raise RuntimeError(
+        "Generated mizuroute.control contains "
+        f"blank lines: {blank_lines}"
+    )
+
+
+# ------------------------------------------------------------
+# Every setting must have !
+# ------------------------------------------------------------
+
+bad_setting_lines = [
+    (
+        index + 1,
+        line
+    )
+    for index, line in enumerate(
+        generated_lines
+    )
+    if (
+        line.lstrip().startswith("<")
+        and "!" not in line
+    )
+]
+
+
+if bad_setting_lines:
+
+    raise RuntimeError(
+        "Generated mizuroute.control contains "
+        "setting lines without '!':\n"
+        + "\n".join(
+            f"{line_number}: {line}"
+            for line_number, line
+            in bad_setting_lines
+        )
+    )
+
+
+# ------------------------------------------------------------
+# Required entries
+# ------------------------------------------------------------
+
 control_text = "\n".join(
     generated_lines
 )
 
 
-# ------------------------------------------------------------
-# Required sections
-# ------------------------------------------------------------
-
-for section in (
-    "[mizuRoute]",
-    "[simulation]",
-    "[hydrofabric]",
-):
-
-    if section not in generated_lines:
-
-        raise RuntimeError(
-            "Generated mizuroute.control is missing "
-            f"section {section}"
-        )
-
-
-# ------------------------------------------------------------
-# Required keys
-# ------------------------------------------------------------
-
-required_keys = [
-    "namelist_path",
-    "namelist_file",
-    "methods",
-    "dt",
-    "write_qbasin",
-    "write_Qreach",
-    "use_mizuroute",
-    "hfabric_path",
-    "hfabric_file",
-    "hfabric_newfile",
-    "dname_seg",
-    "dname_hru",
-    "varname_HRUid",
-    "varname_segId",
-    "varname_hruSegId",
-    "varname_downSegId",
-    "varname_area",
-    "varname_slope",
-    "varname_length",
-    "seg_outlet",
+required_entries = [
+    "<ancil_dir>",
+    "<input_dir>",
+    "<output_dir>",
+    "<param_nml>",
+    "<case_name>",
+    "<sim_start>",
+    "<sim_end>",
+    "<route_opt>",
+    "<newFileFrequency>",
+    "<fname_ntopOld>",
+    "<seg_outlet>",
+    "<fname_qsim>",
+    "<vname_qsim>",
+    "<dt_qsim>",
+    "<ro_calendar>",
+    "<is_remap>",
+    "<pio_netcdf_type>",
+    "<pio_netcdf_format>",
+    "<doesBasinRoute>",
 ]
 
 
-missing_keys = [
-    key
-    for key in required_keys
-    if not any(
-        line.split("=", 1)[0].strip() == key
-        for line in generated_lines
-        if "=" in line
-        and not line.lstrip().startswith("#")
-    )
+missing_entries = [
+    entry
+    for entry in required_entries
+    if entry not in control_text
 ]
 
 
-if missing_keys:
+if missing_entries:
 
     raise RuntimeError(
         "Generated mizuroute.control is missing "
-        "required keys:\n"
+        "required entries:\n"
         + "\n".join(
-            missing_keys
+            missing_entries
         )
+    )
+
+
+# ------------------------------------------------------------
+# Reject obsolete calendar syntax
+# ------------------------------------------------------------
+
+if "<calendar>" in control_text:
+
+    raise RuntimeError(
+        "Generated control contains obsolete "
+        "<calendar>. Use <ro_calendar>."
     )
 
 
@@ -653,10 +1370,12 @@ if missing_keys:
 # ------------------------------------------------------------
 
 required_exact_lines = {
-    f'methods = "{route_opt}"',
-    f"dt = {routing_dt}",
-    f"use_mizuroute    = {use_mizuroute}",
-    f"seg_outlet = {topology_outlet}",
+    f"<seg_outlet> {topology_outlet} !",
+    f"<ro_calendar> {routing_calendar} !",
+    f"<pio_netcdf_type> {pio_netcdf_type} !",
+    f"<pio_netcdf_format> {pio_netcdf_format} !",
+    f"<is_remap> {do_remap} !",
+    f"<doesBasinRoute> {within_basin} !",
 }
 
 
@@ -682,69 +1401,15 @@ if missing_exact_lines:
 
 
 # ------------------------------------------------------------
-# Verify the file parses as TOML (Python >= 3.11)
+# Verify parameter staging
 # ------------------------------------------------------------
 
-try:
+if not parameter_input_file.exists():
 
-    import tomllib
-
-except ImportError:
-
-    tomllib = None
-
-
-if tomllib is not None:
-
-    try:
-
-        parsed = tomllib.loads(
-            control_text
-        )
-
-    except tomllib.TOMLDecodeError as exc:
-
-        raise RuntimeError(
-            "Generated mizuroute.control is not "
-            "valid TOML:\n"
-            f"{exc}"
-        ) from exc
-
-    if parsed["mizuRoute"]["methods"] != str(route_opt):
-
-        raise RuntimeError(
-            "Parsed 'methods' does not match route_opt."
-        )
-
-    if parsed["hydrofabric"]["seg_outlet"] != topology_outlet:
-
-        raise RuntimeError(
-            "Parsed 'seg_outlet' does not match "
-            "the expected value."
-        )
-
-    # write_qbasin / write_Qreach may be true or false;
-    # only require that they parse as booleans.
-
-    for key in (
-        "write_qbasin",
-        "write_Qreach",
-    ):
-
-        if not isinstance(
-            parsed["mizuRoute"][key],
-            bool
-        ):
-
-            raise RuntimeError(
-                f"Parsed '{key}' must be true or false."
-            )
-
-else:
-
-    print(
-        "Python < 3.11: tomllib unavailable, "
-        "TOML parse check skipped."
+    raise RuntimeError(
+        "Parameter namelist was not staged into "
+        "the mizuRoute input directory:\n"
+        f"{parameter_input_file}"
     )
 
 
@@ -821,27 +1486,21 @@ with open(
     )
 
     file.write(
-        f"Route option (methods): {route_opt}\n"
+        f"Simulation: "
+        f"{sim_start} to {sim_end}\n"
     )
 
     file.write(
-        f"Routing timestep (dt): {routing_dt} s\n"
+        f"Route option: {route_opt}\n"
     )
 
     file.write(
-        f"write_qbasin: {write_qbasin}\n"
+        f"Within-basin routing: "
+        f"{within_basin}\n"
     )
 
     file.write(
-        f"write_Qreach: {write_qreach}\n"
-    )
-
-    file.write(
-        f"use_mizuroute: {use_mizuroute}\n"
-    )
-
-    file.write(
-        f"Namelist: {parameter_file}\n"
+        f"Remapping: {do_remap}\n"
     )
 
     file.write(
@@ -849,15 +1508,57 @@ with open(
     )
 
     file.write(
-        f"Topology (new): {topology_new_name}\n"
+        f"SUMMA runoff file: {routing_nc}\n"
     )
 
     file.write(
-        f"seg_outlet: {topology_outlet}\n"
+        f"Runoff variable: "
+        f"{routing_var_flow}\n"
     )
 
     file.write(
-        f"Control output: {control_output}\n"
+        f"Routing timestep: "
+        f"{routing_dt} s\n"
+    )
+
+    file.write(
+        f"Output frequency: "
+        f"{output_frequency}\n"
+    )
+
+    file.write(
+        f"seg_outlet: "
+        f"{topology_outlet}\n"
+    )
+
+    file.write(
+        f"Runoff calendar: "
+        f"{routing_calendar}\n"
+    )
+
+    file.write(
+        f"PIO NetCDF type: "
+        f"{pio_netcdf_type}\n"
+    )
+
+    file.write(
+        f"PIO NetCDF format: "
+        f"{pio_netcdf_format}\n"
+    )
+
+    file.write(
+        f"Parameter source: "
+        f"{parameter_file}\n"
+    )
+
+    file.write(
+        f"Parameter staged: "
+        f"{parameter_input_file}\n"
+    )
+
+    file.write(
+        f"Control output: "
+        f"{control_output}\n"
     )
 
     file.write(
@@ -887,7 +1588,32 @@ print(
 )
 
 print(
+    f"Simulation       : "
+    f"{sim_start} to {sim_end}"
+)
+
+print(
     f"Route option     : {route_opt}"
+)
+
+print(
+    f"Within basin     : {within_basin}"
+)
+
+print(
+    f"Remapping        : {do_remap}"
+)
+
+print(
+    f"Output frequency : {output_frequency}"
+)
+
+print(
+    f"Runoff file      : {routing_nc}"
+)
+
+print(
+    f"Runoff variable  : {routing_var_flow}"
 )
 
 print(
@@ -896,6 +1622,10 @@ print(
 
 print(
     f"Output           : {control_output}"
+)
+
+print(
+    f"Parameter staged : {parameter_input_file}"
 )
 
 print(

@@ -4,7 +4,7 @@
 #SBATCH --ntasks=4
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=16G
-#SBATCH --time=12:00:00
+#SBATCH --time=2-12:00:00
 #SBATCH --output=./slurm_logs/mizuRoute_%j.out
 #SBATCH --error=./slurm_logs/mizuRoute_%j.err
 
