@@ -1,6 +1,35 @@
 # Initial conditions file
 Makes an initial conditions file with basic assumptions. The initial conditions or state file contains a number of modeling options. The state file is an `.nc` file with dimensions `nSoil`, `nSnow`, `midSoil`, `midToto`, `ifcToto` and `scalarv`. See: https://summa.readthedocs.io/en/latest/input_output/SUMMA_input/#initial-conditions-restart-or-state-file
 
+After creating `coldState.nc` and `trialParams.nc`, add the GRU dimension and
+IDs from the trial-parameter file with:
+
+```bash
+python 2_add_gru_to_coldState.py /path/to/control_DOMAIN.txt
+```
+
+The script checks that the two files contain the same set of `hruId` values
+before adding `gru` and `gruId` to `coldState.nc`.
+
+To copy calibrated state variables from `coldState*.nc` files under
+`calib_params_file_path` into `coldState.nc`, matched by `gruId`, run:
+
+```bash
+python 3_copy_coldState.py /path/to/control_DOMAIN.txt
+```
+
+By default, the destination is backed up as `coldState.nc.bak`; pass
+`--no-backup` to disable the backup.
+
+To remove the `gru` dimension and `gruId` variable from `coldState.nc`, run:
+
+```bash
+python 4_remove_gru_from_coldState.py /path/to/control_DOMAIN.txt
+```
+
+This also creates a backup by default. The script stops if another variable
+depends on the `gru` dimension.
+
 State parameters are set at hard-coded values as follows:
 
 | Parameter            | Value                                        | Units  | Description |

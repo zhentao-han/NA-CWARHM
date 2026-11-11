@@ -5,7 +5,7 @@
 #SBATCH --ntasks=4
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=1G
-#SBATCH --time=3-00:00:00
+#SBATCH --time=01:00:00
 #SBATCH --output=SUMMA_slurm_logs/SUMMA_%j.out
 #SBATCH --error=SUMMA_slurm_logs/SUMMA_%j.err
 

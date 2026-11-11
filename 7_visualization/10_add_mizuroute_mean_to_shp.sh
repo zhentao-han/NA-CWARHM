@@ -10,7 +10,7 @@
 #SBATCH --error=mizuMeanShp_%j.err
 
 # ============================================================
-# Average KWTroutedRunoff (over time) from every
+# Average DWroutedRunoff (over time) from every
 #   ${EXPERIMENT_ID}.h.*.nc
 # in the mizuRoute OUTPUT_PATH and attach each average as an
 # attribute of a copy of the river network shapefile,
@@ -203,7 +203,7 @@ done
 
 echo
 echo "============================================================"
-echo "MEAN KWTroutedRunoff -> RIVER NETWORK SHAPEFILE"
+echo "MEAN DWroutedRunoff -> RIVER NETWORK SHAPEFILE"
 echo "============================================================"
 
 echo "Domain        : $DOMAIN_NAME"
@@ -236,7 +236,7 @@ import geopandas as gpd
 
 output_path, experiment_id, out_shp = sys.argv[1:4]
 
-VAR = "KWTroutedRunoff"
+VAR = "DWroutedRunoff"
 ID_VAR = "reachID"
 SHP_ID = "COMID"
 CHUNK = 500  # time steps read at once (keeps memory low)

@@ -378,6 +378,18 @@ run_python_step \
     "SUMMA STEP 5b: COPY TRIAL PARAMETERS" \
     "${SUMMA}/1e_trial_parameters/2_copy_trialParams.py"
 
+run_python_step \
+    "SUMMA STEP 5c: ADD GRU TO COLD STATE" \
+    "${SUMMA}/1d_initial_conditions/2_add_gru_to_coldState.py"   
+
+run_python_step \
+    "SUMMA STEP 5d: COPY COLD STATE VARIABLES" \
+    "${SUMMA}/1d_initial_conditions/3_copy_coldState.py"       
+
+run_python_step \
+    "SUMMA STEP 5e: REMOVE GRU FROM COLD STATE" \
+    "${SUMMA}/1d_initial_conditions/4_remove_gru_from_coldState.py" 
+
 # ------------------------------------------------------------
 # SUMMA STEP 6
 # ------------------------------------------------------------

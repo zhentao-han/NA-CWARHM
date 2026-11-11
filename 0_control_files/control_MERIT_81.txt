@@ -76,7 +76,7 @@ exe_name_mizuroute          | route_runoff.exe
 forcing_raw_time            | 1979-10,2026-09
 
 # LAT_MAX/LON_MIN/LAT_MIN/LON_MAX
-forcing_raw_space                   | 71.525417/-178.283750/51.441250/-128.927917
+forcing_raw_space            | 71.325417/-178.083750/51.641250/-129.127917
 
 forcing_time_step_size      | 86400
 forcing_measurement_height  | 3

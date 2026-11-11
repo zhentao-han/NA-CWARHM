@@ -763,8 +763,18 @@ def combine_month(year, month):
         # ----------------------------------------------------
 
         ds_out = ds_out.assign_coords(
-            time=era5["time"].values
+            time=era5["time"]
         )
+
+        for key in (
+            "units",
+            "calendar",
+            "dtype",
+        ):
+            if key in era5["time"].encoding:
+                ds_out["time"].encoding[key] = (
+                    era5["time"].encoding[key]
+                )
 
 
         if "hru" in era5.coords:
