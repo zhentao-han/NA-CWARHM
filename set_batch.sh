@@ -1,7 +1,7 @@
 export SLURM_ACCOUNT=rrg-h294liu_cpu
 export SLURM_ACCOUNT_DEF=def-h294liu_cpu
 
-export CWARHM="/home/zhentao/scratch/NAHM/NA-CWARHM"
+export CWARHM="/home/zhentao/projects/rrg-h294liu/zhentao/global_hydro/NA-CWARHM"
 export REPO_ROOT="${CWARHM}"    ##"/home/zhentao/projects/rrg-h294liu/zhentao/NA-CWARHM"
 export DATA_ROOT="/home/zhentao/scratch/NAHM/NA_data_MSWX"
 export CONTROL_DIR="${REPO_ROOT}/0_control_files"

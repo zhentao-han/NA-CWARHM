@@ -91,22 +91,22 @@ forcing_emearth_precip              | prcp_corrected
 forcing_era5_path           | /home/zhentao/projects/rrg-h294liu/data/meteorological-data/era5/2_merged_data
 
 #####Changed######## 
-forcing_prcp_path           | /home/zhentao/scratch/data/temp/MSWEP/Past/Monthly
-forcing_tmean_path          | /home/zhentao/scratch/data/temp/MSWX/Temp/Past/Monthly
+forcing_prcp_path           | /home/zhentao/projects/def-h294liu/zhentao/forcing_data/MSWEP/Monthly
+forcing_tmean_path          | /home/zhentao/projects/def-h294liu/zhentao/forcing_data/MSWX/Temp/Temp/Past/Monthly
 forcing_prcp_var            | precipitation
 forcing_prcp_units          | mm/day
 forcing_tmean_var           | air_temperature
 forcing_tmean_units         | degC
 
-forcing_airpres_path   | /home/zhentao/scratch/data/temp/MSWX/Pres/Past/Monthly
+forcing_airpres_path   | /home/zhentao/projects/def-h294liu/zhentao/forcing_data/MSWX/Pres/Pres/Past/Monthly
 forcing_airpres_var    | surface_pressure 
-forcing_LWRadAtm_path  | /home/zhentao/scratch/data/temp/MSWX/LWd/Past/Monthly
+forcing_LWRadAtm_path  | /home/zhentao/projects/def-h294liu/zhentao/forcing_data/MSWX/LWd/LWd/Past/Monthly
 forcing_LWRadAtm_var   | downward_longwave_radiation
-forcing_SWRadAtm_path  | /home/zhentao/scratch/data/temp/MSWX/SWd/Past/Monthly
+forcing_SWRadAtm_path  | /home/zhentao/projects/def-h294liu/zhentao/forcing_data/MSWX/SWd/SWd/Past/Monthly
 forcing_SWRadAtm_var   | downward_shortwave_radiation
-forcing_spechum_path   | /home/zhentao/scratch/data/temp/MSWX/SpecHum/Past/Monthly
+forcing_spechum_path   | /home/zhentao/projects/def-h294liu/zhentao/forcing_data/MSWX/SpecHum/SpecHum/Past/Monthly
 forcing_spechum_var    | specific_humidity
-forcing_windspd_path   | /home/zhentao/scratch/data/temp/MSWX/Wind/Past/Monthly
+forcing_windspd_path   | /home/zhentao/projects/def-h294liu/zhentao/forcing_data/MSWX/Wind/Wind/Past/Monthly
 forcing_windspd_var    | wind_speed
 
 #############
