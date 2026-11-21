@@ -13,7 +13,7 @@ vegeParTbl                      MODIFIED_IGBP_MODIS_NOAH        ! vegetation cat
 soilStress                      NoahType        ! choice of function for the soil moisture control on stomatal resistance
 stomResist                      BallBerry       ! choice of function for stomatal resistance
 ! ***********************************************************************************************************************
-num_method                      itertive        ! choice of numerical method: ida: sundials
+num_method                      homegrown        ! choice of numerical method: ida: sundials
 fDerivMeth                      analytic        ! method used to calculate flux derivatives
 LAI_method                      specified       ! method used to determine LAI and SAI
 f_Richards                      mixdform        ! form of Richard's equation
@@ -36,7 +36,7 @@ thCondSnow                      jrdn1991        ! choice of thermal conductivity
 thCondSoil                      funcSoilWet     ! choice of thermal conductivity representation for soil
 spatial_gw                      localColumn     ! choice of method for the spatial representation of groundwater
 subRouting                      timeDlay        ! choice of method for sub-grid routing
-infRateMax                      GreenAmpt       ! infiltration parameterization
+infRateMax                      topmodel_GA       ! infiltration parameterization
 nrgConserv                      enthalpyForm    ! choice of variable in either energy backward Euler residual or IDA state variable
 read_force                      readFullSeries  ! method used to read forcing data (per step or full read)
 write_buff                      writePerStep    ! method used to write model output (per step or full read

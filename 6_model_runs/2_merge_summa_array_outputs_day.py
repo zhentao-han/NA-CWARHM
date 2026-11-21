@@ -22,12 +22,14 @@ The script:
     - verifies GRU IDs are unique
     - verifies GRU IDs exactly match attributes.nc
     - preserves the expected GRU ordering
-    - merges averageRoutedRunoff spatially along gru
+    - merges averageRoutedRunoff along gru and scalarTotalSoilWat
+      and scalarSWE along hru
     - verifies the merged output
     - samples runoff values for NaN/Inf
     - writes provenance information
 
-This merged file is the runoff input expected by mizuRoute.
+The merged file contains the spatially combined SUMMA variables,
+including the runoff input expected by mizuRoute.
 """
 
 
@@ -190,6 +192,15 @@ pattern = re.compile(
     r"G(\d+)-(\d+)_day\.nc$"
 )
 
+spatial_variable_dimensions = {
+    "averageRoutedRunoff": ("time", "gru"),
+    "scalarTotalSoilWat": ("time", "hru", "dom"),
+    "scalarSWE": ("time", "hru", "dom"),
+}
+spatial_variables = tuple(
+    spatial_variable_dimensions
+)
+
 
 array_files = []
 
@@ -282,12 +293,43 @@ with nc.Dataset(
             "the 'gruId' variable."
         )
 
+    if "hru" not in ds.dimensions:
+
+        raise RuntimeError(
+            "SUMMA attributes file does not contain "
+            "the 'hru' dimension."
+        )
+
+    if (
+        "hruId" not in ds.variables
+        or "hru2gruId" not in ds.variables
+    ):
+
+        raise RuntimeError(
+            "SUMMA attributes file must contain "
+            "'hruId' and 'hru2gruId' variables."
+        )
+
     expected_grus = len(
         ds.dimensions["gru"]
     )
 
+    expected_hrus = len(
+        ds.dimensions["hru"]
+    )
+
     expected_gru_ids = np.asarray(
         ds.variables["gruId"][:],
+        dtype=np.int64
+    )
+
+    expected_hru_ids = np.asarray(
+        ds.variables["hruId"][:],
+        dtype=np.int64
+    )
+
+    expected_hru2gru_ids = np.asarray(
+        ds.variables["hru2gruId"][:],
         dtype=np.int64
     )
 
@@ -299,6 +341,16 @@ if len(expected_gru_ids) != expected_grus:
         "the gru dimension."
     )
 
+if (
+    len(expected_hru_ids) != expected_hrus
+    or len(expected_hru2gru_ids) != expected_hrus
+):
+
+    raise RuntimeError(
+        "HRU ID or hru2gruId length in attributes.nc "
+        "does not match the hru dimension."
+    )
+
 
 if len(
     np.unique(expected_gru_ids)
@@ -307,6 +359,35 @@ if len(
     raise RuntimeError(
         "Duplicate gruId values detected in attributes.nc."
     )
+
+if len(
+    np.unique(expected_hru_ids)
+) != expected_hrus:
+
+    raise RuntimeError(
+        "Duplicate hruId values detected in attributes.nc."
+    )
+
+if not np.all(
+    np.isin(expected_hru2gru_ids, expected_gru_ids)
+):
+
+    raise RuntimeError(
+        "attributes.nc contains hru2gruId values "
+        "that do not exist in gruId."
+    )
+
+gru_index_by_id = {
+    int(gru_id): index
+    for index, gru_id in enumerate(expected_gru_ids)
+}
+
+hru_indices_by_gru_id = {
+    int(gru_id): np.flatnonzero(
+        expected_hru2gru_ids == gru_id
+    )
+    for gru_id in expected_gru_ids
+}
 
 
 # ============================================================
@@ -336,6 +417,7 @@ valid_files = []
 reference_time = None
 reference_time_units = None
 ntime = None
+reference_dom_count = None
 
 
 for start, end, file in array_files:
@@ -369,6 +451,36 @@ for start, end, file in array_files:
             ds.dimensions["gru"]
         )
 
+        if (
+            "hru" not in ds.dimensions
+            or "dom" not in ds.dimensions
+        ):
+
+            raise RuntimeError(
+                f"{file.name} is missing the 'hru' "
+                "or 'dom' dimension required by "
+                "the scalar variables."
+            )
+
+        nh = len(
+            ds.dimensions["hru"]
+        )
+
+        nd = len(
+            ds.dimensions["dom"]
+        )
+
+        if reference_dom_count is None:
+
+            reference_dom_count = nd
+
+        elif nd != reference_dom_count:
+
+            raise RuntimeError(
+                f"Domain dimension mismatch in {file.name}: "
+                f"{nd} != {reference_dom_count}"
+            )
+
 
         # ----------------------------------------------------
         # Ignore interrupted diagnostic files
@@ -391,7 +503,7 @@ for start, end, file in array_files:
         required_variables = {
             "time",
             "gruId",
-            "averageRoutedRunoff"
+            *spatial_variables,
         }
 
         missing = (
@@ -546,30 +658,85 @@ for start, end, file in array_files:
                 f"{file.name}"
             )
 
-
-        # ----------------------------------------------------
-        # Runoff dimensions
-        # ----------------------------------------------------
-
-        runoff = ds.variables[
-            "averageRoutedRunoff"
+        unknown_gru_ids = [
+            int(gru_id)
+            for gru_id in gru_ids
+            if int(gru_id) not in gru_index_by_id
         ]
 
-        expected_shape = (
-            nt,
-            ng
-        )
-
-
-        if runoff.shape != expected_shape:
+        if unknown_gru_ids:
 
             raise RuntimeError(
-                f"{file.name}: "
-                "averageRoutedRunoff has shape "
-                f"{runoff.shape}, "
-                f"expected {expected_shape}."
+                f"{file.name} contains GRU IDs not found "
+                f"in attributes.nc: {unknown_gru_ids[:10]}"
             )
 
+
+        for variable_name in spatial_variables:
+
+            variable = ds.variables[
+                variable_name
+            ]
+
+            expected_dimensions = (
+                spatial_variable_dimensions[
+                    variable_name
+                ]
+            )
+
+            if variable.dimensions != expected_dimensions:
+
+                raise RuntimeError(
+                    f"{file.name}: "
+                    f"{variable_name} has dimensions "
+                    f"{variable.dimensions}, "
+                    f"expected {expected_dimensions}."
+                )
+
+            dimension_sizes = {
+                "time": nt,
+                "gru": ng,
+                "hru": nh,
+                "dom": nd,
+            }
+
+            expected_shape = tuple(
+                dimension_sizes[dimension]
+                for dimension in expected_dimensions
+            )
+
+            if variable.shape != expected_shape:
+
+                raise RuntimeError(
+                    f"{file.name}: "
+                    f"{variable_name} has shape "
+                    f"{variable.shape}, "
+                    f"expected {expected_shape}."
+                )
+
+
+        hru_output_indices = np.concatenate(
+            [
+                hru_indices_by_gru_id[int(gru_id)]
+                for gru_id in gru_ids
+            ]
+        )
+
+        if len(hru_output_indices) != nh:
+
+            raise RuntimeError(
+                f"{file.name}: contains {nh} HRUs, but "
+                f"attributes.nc maps {len(hru_output_indices)} "
+                "HRUs to this file's GRUs."
+            )
+
+        gru_output_indices = np.asarray(
+            [
+                gru_index_by_id[int(gru_id)]
+                for gru_id in gru_ids
+            ],
+            dtype=np.int64
+        )
 
         valid_files.append(
             (
@@ -577,7 +744,11 @@ for start, end, file in array_files:
                 end,
                 file,
                 ng,
-                gru_ids
+                gru_ids,
+                nh,
+                nd,
+                gru_output_indices,
+                hru_output_indices
             )
         )
 
@@ -640,7 +811,17 @@ for previous, current in zip(
 expected_start = 1
 
 
-for start, end, file, ng, gru_ids in valid_files:
+for (
+    start,
+    end,
+    file,
+    ng,
+    gru_ids,
+    nh,
+    nd,
+    gru_output_indices,
+    hru_output_indices
+) in valid_files:
 
     if start != expected_start:
 
@@ -663,6 +844,19 @@ if expected_start - 1 != expected_grus:
         "SUMMA array ranges do not cover all expected GRUs.\n"
         f"Array files cover GRUs 1-{expected_start - 1}, "
         f"but attributes.nc contains {expected_grus} GRUs."
+    )
+
+input_hrus = sum(
+    item[5]
+    for item in valid_files
+)
+
+if input_hrus != expected_hrus:
+
+    raise RuntimeError(
+        "SUMMA array files do not cover all expected HRUs.\n"
+        f"Array files contain {input_hrus} HRUs, "
+        f"but attributes.nc contains {expected_hrus}."
     )
 
 
@@ -704,29 +898,17 @@ if len(
     )
 
 
-# Strongest check:
-# the merged GRU order must exactly match attributes.nc.
+# Verify the GRU IDs form the same complete set. Input files can
+# store them in a different order than attributes.nc.
 
 if not np.array_equal(
-    all_gru_ids,
-    expected_gru_ids
+    np.sort(all_gru_ids),
+    np.sort(expected_gru_ids)
 ):
 
-    print()
-    print("First SUMMA array GRU IDs:")
-    print(
-        all_gru_ids[:10]
-    )
-
-    print()
-    print("First attributes.nc GRU IDs:")
-    print(
-        expected_gru_ids[:10]
-    )
-
     raise RuntimeError(
-        "SUMMA array GRU order does not exactly match "
-        "gruId order in attributes.nc."
+        "SUMMA array GRU IDs do not match the IDs "
+        "in attributes.nc."
     )
 
 
@@ -734,7 +916,7 @@ print()
 print(
     "GRU validation passed: "
     f"{expected_grus} unique GRUs "
-    "match attributes.nc exactly."
+    "match attributes.nc."
 )
 
 
@@ -782,6 +964,16 @@ with nc.Dataset(
     output.createDimension(
         "gru",
         expected_grus
+    )
+
+    output.createDimension(
+        "hru",
+        expected_hrus
+    )
+
+    output.createDimension(
+        "dom",
+        reference_dom_count
     )
 
 
@@ -863,120 +1055,230 @@ with nc.Dataset(
         expected_gru_ids
     )
 
-
-    # --------------------------------------------------------
-    # Runoff
-    # --------------------------------------------------------
-
-    src_runoff = source.variables[
-        "averageRoutedRunoff"
-    ]
-
-
-    dst_runoff = output.createVariable(
-        "averageRoutedRunoff",
-        src_runoff.dtype,
-        ("time", "gru"),
-        zlib=True,
-        complevel=1,
-        chunksizes=(
-            min(
-                8760,
-                ntime
-            ),
-            min(
-                10,
-                expected_grus
-            )
-        )
+    dst_hru_id = output.createVariable(
+        "hruId",
+        expected_hru_ids.dtype,
+        ("hru",)
     )
 
+    dst_hru_id[:] = (
+        expected_hru_ids
+    )
 
-    for attr in src_runoff.ncattrs():
+    dst_hru2gruid = output.createVariable(
+        "hru2gruId",
+        expected_hru2gru_ids.dtype,
+        ("hru",)
+    )
 
-        dst_runoff.setncattr(
-            attr,
-            src_runoff.getncattr(
-                attr
+    dst_hru2gruid[:] = (
+        expected_hru2gru_ids
+    )
+
+    # --------------------------------------------------------
+    # HRU and domain coordinates
+    # --------------------------------------------------------
+
+    src_hru = source.variables.get(
+        "hru"
+    )
+
+    dst_hru = output.createVariable(
+        "hru",
+        src_hru.dtype if src_hru is not None else "i4",
+        ("hru",)
+    )
+
+    if src_hru is not None:
+
+        for attr in src_hru.ncattrs():
+
+            dst_hru.setncattr(
+                attr,
+                src_hru.getncattr(
+                    attr
+                )
             )
+
+    dst_hru[:] = np.arange(
+        1,
+        expected_hrus + 1,
+        dtype=dst_hru.dtype
+    )
+
+    src_dom = source.variables.get(
+        "dom"
+    )
+
+    dst_dom = output.createVariable(
+        "dom",
+        src_dom.dtype if src_dom is not None else "i4",
+        ("dom",)
+    )
+
+    if src_dom is not None:
+
+        for attr in src_dom.ncattrs():
+
+            dst_dom.setncattr(
+                attr,
+                src_dom.getncattr(
+                    attr
+                )
+            )
+
+        dst_dom[:] = src_dom[:]
+
+    else:
+
+        dst_dom[:] = np.arange(
+            1,
+            reference_dom_count + 1,
+            dtype=dst_dom.dtype
         )
+
+
+    # --------------------------------------------------------
+    # Spatial variables
+    # --------------------------------------------------------
+
+    destination_variables = {}
+
+    for variable_name in spatial_variables:
+
+        src_variable = source.variables[
+            variable_name
+        ]
+
+        dimensions = spatial_variable_dimensions[
+            variable_name
+        ]
+
+        if "gru" in dimensions:
+
+            chunksizes = (
+                min(8760, ntime),
+                min(10, expected_grus),
+            )
+
+        else:
+
+            chunksizes = (
+                min(8760, ntime),
+                min(10, expected_hrus),
+                reference_dom_count,
+            )
+
+        dst_variable = output.createVariable(
+            variable_name,
+            src_variable.dtype,
+            dimensions,
+            zlib=True,
+            complevel=1,
+            chunksizes=chunksizes
+        )
+
+        for attr in src_variable.ncattrs():
+
+            dst_variable.setncattr(
+                attr,
+                src_variable.getncattr(
+                    attr
+                )
+            )
+
+        destination_variables[
+            variable_name
+        ] = dst_variable
 
 
     # --------------------------------------------------------
     # Copy spatial blocks
     # --------------------------------------------------------
 
-    column_start = 0
-
-
     print()
-    print("Copying runoff data...")
+    time_chunk = 8760
 
+    for variable_name in spatial_variables:
 
-    for (
-        start,
-        end,
-        file,
-        ng,
-        gru_ids
-    ) in valid_files:
+        print(f"Copying {variable_name} data...")
+        spatial_dimension = spatial_variable_dimensions[
+            variable_name
+        ][1]
 
-        column_end = (
-            column_start
-            + ng
-        )
+        for (
+            start,
+            end,
+            file,
+            ng,
+            gru_ids,
+            nh,
+            nd,
+            gru_output_indices,
+            hru_output_indices
+        ) in valid_files:
 
+            if spatial_dimension == "gru":
 
-        print(
-            f"  {file.name}: "
-            f"columns "
-            f"{column_start + 1}-"
-            f"{column_end}"
-        )
+                output_indices = gru_output_indices
 
+            else:
 
-        with nc.Dataset(
-            file
-        ) as source_part:
+                output_indices = hru_output_indices
 
-            source_runoff = (
-                source_part.variables[
-                    "averageRoutedRunoff"
-                ]
+            print(
+                f"  {file.name}: "
+                f"{len(output_indices)} {spatial_dimension} values"
             )
 
+            with nc.Dataset(
+                file
+            ) as source_part:
 
-            # Copy in time chunks to avoid loading an entire
-            # large array file into memory.
-
-            time_chunk = 8760
-
-
-            for t0 in range(
-                0,
-                ntime,
-                time_chunk
-            ):
-
-                t1 = min(
-                    t0 + time_chunk,
-                    ntime
+                source_variable = (
+                    source_part.variables[
+                        variable_name
+                    ]
                 )
 
+                # Copy in time chunks to avoid loading an entire
+                # large array file into memory.
+                for t0 in range(
+                    0,
+                    ntime,
+                    time_chunk
+                ):
 
-                dst_runoff[
-                    t0:t1,
-                    column_start:column_end
-                ] = source_runoff[
-                    t0:t1,
-                    :
-                ]
+                    t1 = min(
+                        t0 + time_chunk,
+                        ntime
+                    )
 
+                    if spatial_dimension == "gru":
 
-        column_start = (
-            column_end
-        )
+                        destination_variables[
+                            variable_name
+                        ][
+                            t0:t1,
+                            output_indices
+                        ] = source_variable[
+                            t0:t1,
+                            :
+                        ]
 
+                    else:
+
+                        destination_variables[
+                            variable_name
+                        ][
+                            t0:t1,
+                            output_indices,
+                            :
+                        ] = source_variable[
+                            t0:t1,
+                            :,
+                            :
+                        ]
 
     # --------------------------------------------------------
     # Metadata
@@ -1054,6 +1356,18 @@ with nc.Dataset(
             f"Found   : {written_grus}"
         )
 
+    written_hrus = len(
+        ds.dimensions["hru"]
+    )
+
+    if written_hrus != expected_hrus:
+
+        raise RuntimeError(
+            "Merged HRU dimension is incorrect.\n"
+            f"Expected: {expected_hrus}\n"
+            f"Found   : {written_hrus}"
+        )
+
 
     # --------------------------------------------------------
     # Time coordinate
@@ -1104,34 +1418,79 @@ with nc.Dataset(
             "Merged gruId values or ordering are incorrect."
         )
 
+    written_hru_ids = np.asarray(
+        ds.variables["hruId"][:],
+        dtype=np.int64
+    )
 
-    # --------------------------------------------------------
-    # Runoff shape
-    # --------------------------------------------------------
+    if not np.array_equal(
+        written_hru_ids,
+        expected_hru_ids
+    ):
+
+        raise RuntimeError(
+            "Merged hruId values or ordering are incorrect."
+        )
+
+    written_hru2gru_ids = np.asarray(
+        ds.variables["hru2gruId"][:],
+        dtype=np.int64
+    )
+
+    if not np.array_equal(
+        written_hru2gru_ids,
+        expected_hru2gru_ids
+    ):
+
+        raise RuntimeError(
+            "Merged hru2gruId values or ordering are incorrect."
+        )
+
+
+    for variable_name in spatial_variables:
+
+        variable = ds.variables[
+            variable_name
+        ]
+
+        expected_dimensions = spatial_variable_dimensions[
+            variable_name
+        ]
+
+        if variable.dimensions != expected_dimensions:
+
+            raise RuntimeError(
+                f"Merged {variable_name} variable has "
+                "incorrect dimensions.\n"
+                f"Expected: {expected_dimensions}\n"
+                f"Found   : {variable.dimensions}"
+            )
+
+        dimension_sizes = {
+            "time": ntime,
+            "gru": expected_grus,
+            "hru": expected_hrus,
+            "dom": reference_dom_count,
+        }
+
+        expected_shape = tuple(
+            dimension_sizes[dimension]
+            for dimension in expected_dimensions
+        )
+
+        if variable.shape != expected_shape:
+
+            raise RuntimeError(
+                f"Merged {variable_name} variable has "
+                "incorrect shape.\n"
+                f"Expected: {expected_shape}\n"
+                f"Found   : {variable.shape}"
+            )
+
 
     runoff = ds.variables[
         "averageRoutedRunoff"
     ]
-
-
-    runoff_shape = (
-        runoff.shape
-    )
-
-
-    expected_shape = (
-        ntime,
-        expected_grus
-    )
-
-
-    if runoff_shape != expected_shape:
-
-        raise RuntimeError(
-            "Merged runoff variable has incorrect shape.\n"
-            f"Expected: {expected_shape}\n"
-            f"Found   : {runoff_shape}"
-        )
 
 
     # --------------------------------------------------------
@@ -1274,6 +1633,11 @@ with log_file.open(
     )
 
     log.write(
+        "Spatial variables merged: "
+        f"{', '.join(spatial_variables)}\n"
+    )
+
+    log.write(
         "Merged runoff sampled for finite values: yes\n"
     )
 
@@ -1300,7 +1664,7 @@ print("  Overlap check    : PASS")
 print("  Time axes        : PASS")
 print("  GRU uniqueness   : PASS")
 print("  GRU order        : PASS")
-print("  Runoff dimensions: PASS")
+print("  Spatial variable dimensions: PASS")
 print("  Runoff samples   : PASS")
 
 print("============================================================")
